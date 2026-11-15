@@ -1728,6 +1728,9 @@ void displayThread()
       case State::CTRLPAGE2:
         renderCtrlPage(2);
         break;
+      case State::ENVPAGE1:
+        renderEnvPage();
+        break;
       case State::TONEPAGE1:
         renderTonePage();
         break;

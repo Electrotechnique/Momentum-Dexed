@@ -132,7 +132,9 @@ FLASHMEM void assignParametersForPerformanceEncoders()
     const uint8_t params[] = {noencoder, FM_PARAM_BASE + FMP_ALGORITHM, FM_PARAM_BASE + FMP_FEEDBACK,
                               FM_PARAM_BASE + FMP_LFOSPEED, FM_PARAM_BASE + FMP_LFODELAY, FM_PARAM_BASE + FMP_LFOPMD,
                               FM_PARAM_BASE + FMP_LFOAMD, FM_PARAM_BASE + FMP_LFOWAVE, FM_PARAM_BASE + FMP_TRANSPOSE,
-                              FM_PARAM_BASE + FMP_MWRANGE, FM_PARAM_BASE + FMP_ATRANGE, CCglide, CCfilterfreq, CCfilterres,
+                              FM_PARAM_BASE + FMP_MWRANGE, FM_PARAM_BASE + FMP_ATRANGE,
+                              FM_PARAM_BASE + FMP_MACRO_ATTACK, FM_PARAM_BASE + FMP_MACRO_DECAY,
+                              FM_PARAM_BASE + FMP_MACRO_DECAY2, FM_PARAM_BASE + FMP_MACRO_RELEASE, CCglide, CCfilterfreq, CCfilterres,
                               pitchbendrange, CCmonomode, CCensemblefxamt, CCensemblefxmix, CCensemblefxdepth,
                               CCensemblefxdelay, CCreverbfxtime, CCreverbfxmix, CCreverbfxdamping, CCreverbfxbasscut};
     for (uint8_t i = 0; i < PARAMETERSFORENCS; i++)

@@ -985,6 +985,8 @@ FLASHMEM void setCurrentPatchData()
         else
             vg->loadInitVoice();
         vg->setOpMask(currentPatch.OpEnabled);
+        for (uint8_t i = 0; i < 4; i++)
+            vg->setEnvMacro(i, (int8_t)currentPatch.EnvMacro[i] - 50);
     }
     vg->setModWheelController(currentPatch.ModWheelRange, currentPatch.ModWheelTarget);
     vg->setAftertouchController(currentPatch.AftertouchRange, currentPatch.AftertouchTarget);
@@ -2269,8 +2271,12 @@ FLASHMEM void buttonCallback(unsigned button_idx, int buttonStatus)
             }
             switch (state)
             {
-            case State::TONEPAGE1:
+            case State::ENVPAGE1:
                 state = State::TONEPAGE1;
+                singleLED(ledColour::RED, 5);
+                break;
+            case State::TONEPAGE1:
+                state = State::ENVPAGE1;
                 singleLED(ledColour::RED, 5);
                 break;
             case State::SETTINGS:
@@ -2282,7 +2288,7 @@ FLASHMEM void buttonCallback(unsigned button_idx, int buttonStatus)
                 singleLED(ledColour::OFF, 1);
                 break;
             default:
-                state = State::TONEPAGE1; // show amplifier parameters
+                state = State::ENVPAGE1; // show the envelope macros
                 singleLED(ledColour::RED, 5);
                 break;
             }
@@ -2291,7 +2297,7 @@ FLASHMEM void buttonCallback(unsigned button_idx, int buttonStatus)
         {
             if (keyboardActive)
                 return;
-            if (state != State::SETTINGS && !inPages(state, State::TONEPAGE1, State::TONEPAGE1))
+            if (state != State::SETTINGS && !inPages(state, State::ENVPAGE1, State::TONEPAGE1))
             {
                 switch (state)
                 {

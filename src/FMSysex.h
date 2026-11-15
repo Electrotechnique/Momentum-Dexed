@@ -237,6 +237,10 @@ FLASHMEM void syxExportBank()
             if (i < count && loadPatch(bank, bankPatches[i].patchUID) && currentPatch.VoiceValid)
             {
                 memcpy(voice, currentPatch.Voice, FM_PATCH_VOICE_SIZE);
+                // The envelope macros are part of the sound: put them into the rates
+                for (uint8_t op = 0; op < 6; op++)
+                    for (uint8_t r = 0; r < 4; r++)
+                        voice[op * 21 + r] = constrain((int16_t)voice[op * 21 + r] - ((int16_t)currentPatch.EnvMacro[r] - 50), 0, 99);
                 // Voice name from the patch name, 10 characters
                 for (uint8_t c = 0; c < 10; c++)
                 {
@@ -311,7 +315,10 @@ FLASHMEM void fmServiceSysex()
             AudioUpdateLock lock;
             int16_t result = global.dexed.checkSystemExclusive(s, len);
             if (result >= 300 && result < 300 + FM_PATCH_VOICE_SIZE)
+            {
+                groupvec[activeGroupIndex]->voiceDataChanged(result - 300); // Keeps the macros on rates
                 setEncodersState(state); // Show the new value if it's on this page
+            }
         }
         else if (DEBUG)
             Serial.printf("SysEx not used: %u bytes\n", len);

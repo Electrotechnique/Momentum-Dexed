@@ -309,10 +309,33 @@ FLASHMEM void renderCtrlPage(uint8_t no)
   renderFMPageChrome(no == 1 ? F("Bend & Portamento") : F("Wheel & Aftertouch"), 2, no);
 }
 
+// Envelope macros: drawn on the first carrier that's on, with the rates as played
+FLASHMEM void renderEnvPage()
+{
+  tft.fillScreen(ILI9341_BLACK);
+  VoiceGroup *vg = groupvec[activeGroupIndex];
+  uint8_t carriers = vg->carrierMask();
+  uint8_t op = 1;
+  for (uint8_t o = 1; o <= FM_OPS; o++)
+    if ((carriers & (1 << (o - 1))) && vg->getOpEnabled(o))
+    {
+      op = o;
+      break;
+    }
+  uint8_t rates[4], levels[4];
+  for (uint8_t i = 0; i < 4; i++)
+  {
+    rates[i] = vg->getOpRatePlayed(op, i);
+    levels[i] = vg->getOpParam(op, DEXED_OP_EG_L1 + i);
+  }
+  renderDXEnvelope(rates, levels, 0, false, 70, FM_DRAW_TOP + 2, 180, 40);
+  renderFMPageChrome("Envelope (Op " + String(op) + ")", 2, 1);
+}
+
 FLASHMEM void renderTonePage()
 {
   tft.fillScreen(ILI9341_BLACK);
-  renderFMPageChrome(F("Tone"), 1, 1);
+  renderFMPageChrome(F("Tone"), 2, 2);
 }
 
 // DX7 .syx files: banks on the left, files in /SYX on the right

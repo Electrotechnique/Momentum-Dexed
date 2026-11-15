@@ -44,6 +44,7 @@ typedef struct PatchStruct
     uint8_t Voice[FM_PATCH_VOICE_SIZE] = {};
     bool VoiceValid = false;  // false: use the Dexed init voice
     uint8_t OpEnabled = 0x3F; // Operator on/off, bit (n-1) = OP n
+    uint8_t EnvMacro[4] = {50, 50, 50, 50}; // Envelope macros, 50 = 0 (rates as in the voice)
     // Controllers (not part of a DX7 voice)
     uint8_t PitchBend = 2;        // Semitones
     uint8_t ModWheelRange = 50;   // 0-99

@@ -197,6 +197,7 @@ typedef enum State
   LFOPAGE2,              // FM LFO wave, sync, pitch mod sensitivity
   CTRLPAGE1,             // Pitch bend, mono, portamento
   CTRLPAGE2,             // Mod wheel and aftertouch
+  ENVPAGE1,              // Envelope macros: attack, decay, decay 2, release of all operators
   TONEPAGE1,             // Output filter and engine
   SYXPAGE,               // DX7 .syx files on the SD card: import and export
   FXPAGE1,               // FX parameters

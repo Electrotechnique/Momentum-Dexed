@@ -47,12 +47,21 @@ secondary functions as Momentum (Perfm, Arp, Seq, MIDI, Settings).
 | | 2 | Wave, Key Sync, Pitch Sens, - |
 | Filter Mod → **Ctrl** | 1 | Bend Range, Mono, Portamento, - |
 | | 2 | Wheel Range, Wheel Dest, AT Range, AT Dest |
-| Amp → **Tone** | 1 | Cutoff, Resonance, Engine, - |
+| Amp → **Envelope** | 1 Envelope | Attack, Decay, Decay 2, Release |
+| | 2 Tone | Cutoff, Resonance, Engine, - |
 | FX | as Momentum | as Momentum |
 
 On every Op page the top left encoder selects the operator, and the page stays the same, so
 operators can be compared. Envelopes are edited a stage at a time. Pushing an encoder sets
 the parameter to a default. The Engine setting (Modern, Mark I, OPL) isn't saved in patches yet.
+
+## Envelope macros
+
+The Envelope page (Amp button) changes the envelope rates of all six operators at once:
+Attack (rate 1), Decay (rate 2), Decay 2 (rate 3, how fast the sound settles to its sustain
+level) and Release (rate 4). -50 to +50, + is slower, push for 0. They are saved with the
+patch and the voice keeps its own rates (Op page 4 shows and edits those). Exported .syx files
+have the macros put into the rates. They can also be assigned to the performance encoders.
 
 ## Patches
 

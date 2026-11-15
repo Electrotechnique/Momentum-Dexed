@@ -31,6 +31,7 @@ typedef enum FMKind : uint8_t
     FMK_AT_RANGE, // Aftertouch range
     FMK_AT_TARGET,
     FMK_ENGINE, // Dexed engine type
+    FMK_ENV_MACRO, // Envelope macro, index = stage 0-3. Value 0-100 is -50 to +50
 } FMKind;
 
 typedef enum FMFormat : uint8_t
@@ -96,6 +97,10 @@ const FMParamDef FM_PARAMS[FMP_COUNT] = {
     {"AT Range", FMK_AT_RANGE, 0, 99, 0, FMF_NUM},
     {"AT Dest", FMK_AT_TARGET, 0, 7, 0, FMF_TARGET},
     {"Engine", FMK_ENGINE, 0, 2, 0, FMF_ENGINE},
+    {"Attack", FMK_ENV_MACRO, 0, 100, 50, FMF_CENTRE50},
+    {"Decay", FMK_ENV_MACRO, 1, 100, 50, FMF_CENTRE50},
+    {"Decay 2", FMK_ENV_MACRO, 2, 100, 50, FMF_CENTRE50},
+    {"Release", FMK_ENV_MACRO, 3, 100, 50, FMF_CENTRE50},
 };
 
 const char *FM_NOTE_NAMES[12] = {"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"};
@@ -140,6 +145,8 @@ FLASHMEM uint8_t fmGet(uint8_t id)
         return currentPatch.AftertouchTarget;
     case FMK_ENGINE:
         return vg->getEngineType();
+    case FMK_ENV_MACRO:
+        return vg->getEnvMacro(p.index) + 50;
     }
     return 0;
 }
@@ -187,6 +194,10 @@ FLASHMEM void fmSet(uint8_t id, uint8_t value)
         break;
     case FMK_ENGINE:
         vg->setEngineType(value);
+        break;
+    case FMK_ENV_MACRO:
+        currentPatch.EnvMacro[p.index] = value;
+        vg->setEnvMacro(p.index, (int8_t)value - 50);
         break;
     }
 }
@@ -414,6 +425,12 @@ FLASHMEM bool setFMEncodersState(State s)
         configureFM(&encMap[ENC_TR], FMP_MWTARGET, s);
         configureFM(&encMap[ENC_BL], FMP_ATRANGE, s);
         configureFM(&encMap[ENC_BR], FMP_ATTARGET, s);
+        return true;
+    case State::ENVPAGE1:
+        configureFM(&encMap[ENC_TL], FMP_MACRO_ATTACK, s);
+        configureFM(&encMap[ENC_TR], FMP_MACRO_DECAY, s);
+        configureFM(&encMap[ENC_BL], FMP_MACRO_DECAY2, s);
+        configureFM(&encMap[ENC_BR], FMP_MACRO_RELEASE, s);
         return true;
     case State::TONEPAGE1:
         configureCutoff(&encMap[ENC_TL], s);

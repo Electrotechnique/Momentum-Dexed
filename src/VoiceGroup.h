@@ -35,12 +35,33 @@ private:
     Global &g;
     uint8_t monophonic = MONOPHONIC_OFF;
     uint8_t opMask = 0x3F; // Operator on/off, bit (n-1) = OP n
+    // Envelope macros: the voice's own rates (baseRate) are kept, and the engine plays
+    // baseRate - envMacro for each stage on all operators (+ is slower)
+    uint8_t baseRate[FM_OPS + 1][4] = {};
+    int8_t envMacro[4] = {};
     float ensembleEffectAmount = 0.0f;
     float ensembleEffectMix = 0.0f;
     float reverbEffectTime = 0.0f;
     float reverbEffectMix = 0.0f;
 
     static inline uint8_t opBase(uint8_t op) { return (FM_OPS - op) * FM_OP_PARAMS; }
+
+    void applyEnvMacro(uint8_t op, uint8_t stage)
+    {
+        int16_t rate = (int16_t)baseRate[op][stage] - envMacro[stage];
+        g.dexed.setVoiceDataElement(opBase(op) + DEXED_OP_EG_R1 + stage, constrain(rate, 0, 99));
+    }
+
+    // After a new voice is in the engine: its rates are the base, then the macros go on top
+    void voiceLoaded()
+    {
+        for (uint8_t op = 1; op <= FM_OPS; op++)
+            for (uint8_t stage = 0; stage < 4; stage++)
+            {
+                baseRate[op][stage] = g.dexed.getVoiceDataElement(opBase(op) + DEXED_OP_EG_R1 + stage);
+                applyEnvMacro(op, stage);
+            }
+    }
 
     // Dexed numbers the operator switch bits in voice data order (bit 0 = OP6)
     void applyOpMask()
@@ -74,8 +95,45 @@ public:
     inline void setUID(uint32_t uid) { UID = uid; }
 
     // ---- FM voice data ----
-    uint8_t getOpParam(uint8_t op, uint8_t param) { return g.dexed.getVoiceDataElement(opBase(op) + param); }
-    void setOpParam(uint8_t op, uint8_t param, uint8_t value) { g.dexed.setVoiceDataElement(opBase(op) + param, value); }
+    // Envelope rates are the voice's own, without the macros (see getOpRatePlayed())
+    uint8_t getOpParam(uint8_t op, uint8_t param)
+    {
+        if (param <= DEXED_OP_EG_R4)
+            return baseRate[op][param - DEXED_OP_EG_R1];
+        return g.dexed.getVoiceDataElement(opBase(op) + param);
+    }
+    void setOpParam(uint8_t op, uint8_t param, uint8_t value)
+    {
+        if (param <= DEXED_OP_EG_R4)
+        {
+            baseRate[op][param - DEXED_OP_EG_R1] = value;
+            applyEnvMacro(op, param - DEXED_OP_EG_R1);
+        }
+        else
+            g.dexed.setVoiceDataElement(opBase(op) + param, value);
+    }
+    // The rate the engine plays, with the macro
+    uint8_t getOpRatePlayed(uint8_t op, uint8_t stage) { return g.dexed.getVoiceDataElement(opBase(op) + DEXED_OP_EG_R1 + stage); }
+
+    // Envelope macro of stage 0-3 (rate 1-4 of all operators), -50 to +50, + is slower
+    int8_t getEnvMacro(uint8_t stage) { return envMacro[stage]; }
+    void setEnvMacro(uint8_t stage, int8_t value)
+    {
+        envMacro[stage] = value;
+        for (uint8_t op = 1; op <= FM_OPS; op++)
+            applyEnvMacro(op, stage);
+    }
+
+    // A voice parameter was changed in the engine directly (SysEx parameter change)
+    void voiceDataChanged(uint8_t address)
+    {
+        if (address < FM_OPS * FM_OP_PARAMS && address % FM_OP_PARAMS <= DEXED_OP_EG_R4)
+        {
+            uint8_t op = FM_OPS - address / FM_OP_PARAMS, stage = address % FM_OP_PARAMS;
+            baseRate[op][stage] = g.dexed.getVoiceDataElement(address);
+            applyEnvMacro(op, stage);
+        }
+    }
     uint8_t getVoiceParam(uint8_t param) { return g.dexed.getVoiceDataElement(DEXED_VOICE_OFFSET + param); }
     void setVoiceParam(uint8_t param, uint8_t value) { g.dexed.setVoiceDataElement(DEXED_VOICE_OFFSET + param, value); }
 
@@ -84,14 +142,21 @@ public:
         uint8_t all[NUM_VOICE_PARAMETERS];
         g.dexed.getVoiceData(all);
         memcpy(data, all, FM_VOICE_SIZE);
+        for (uint8_t op = 1; op <= FM_OPS; op++) // The voice's own rates, not the macros
+            memcpy(&data[opBase(op) + DEXED_OP_EG_R1], baseRate[op], 4);
     }
 
     void setVoiceData(uint8_t *data) // FM_VOICE_SIZE bytes. Stops sounding notes.
     {
         g.dexed.loadVoiceParameters(data);
+        voiceLoaded();
     }
 
-    void loadInitVoice() { g.dexed.loadInitVoice(); }
+    void loadInitVoice()
+    {
+        g.dexed.loadInitVoice();
+        voiceLoaded();
+    }
 
     // Unpacks a 128 byte voice of a DX7 bank (VMEM) into 155 bytes. Stops sounding notes.
     void decodeVoice(uint8_t *voice, uint8_t *packed) { g.dexed.decodeVoice(voice, packed); }

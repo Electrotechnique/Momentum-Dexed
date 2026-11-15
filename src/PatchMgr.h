@@ -361,6 +361,8 @@ FLASHMEM boolean loadPatch(uint8_t bank, uint32_t filename)
     currentPatch.Voice[i] = (uint8_t)strtoul(byteStr, nullptr, 16);
   }
   currentPatch.OpEnabled = doc["OpEnabled"] | 0x3F;
+  for (uint8_t i = 0; i < 4; i++)
+    currentPatch.EnvMacro[i] = min(100, doc["EnvMacro"][i] | 50);
   currentPatch.PitchBend = doc["PitchBend"] | 2;
   currentPatch.ModWheelRange = doc["ModWheelRange"] | 50;
   currentPatch.ModWheelTarget = doc["ModWheelTarget"] | 1;
@@ -442,6 +444,9 @@ FLASHMEM boolean savePatch(uint8_t bankIndex, uint8_t index)
     snprintf(&hex[i * 2], 3, "%02X", currentPatch.Voice[i]);
   doc["Voice"] = hex;
   doc["OpEnabled"] = currentPatch.OpEnabled;
+  JsonArray envMacro = doc.createNestedArray("EnvMacro");
+  for (uint8_t i = 0; i < 4; i++)
+    envMacro.add(currentPatch.EnvMacro[i]);
   doc["PitchBend"] = currentPatch.PitchBend;
   doc["ModWheelRange"] = currentPatch.ModWheelRange;
   doc["ModWheelTarget"] = currentPatch.ModWheelTarget;

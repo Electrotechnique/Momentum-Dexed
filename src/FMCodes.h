@@ -48,6 +48,10 @@ enum FMParamId
     FMP_ATRANGE,
     FMP_ATTARGET,
     FMP_ENGINE,
+    FMP_MACRO_ATTACK, // Envelope macros: rate 1-4 of all operators
+    FMP_MACRO_DECAY,
+    FMP_MACRO_DECAY2,
+    FMP_MACRO_RELEASE,
     FMP_COUNT
 };
 

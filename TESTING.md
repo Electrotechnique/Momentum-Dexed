@@ -15,6 +15,8 @@ the Serial Monitor open: it prints CPU, audio memory, display stack and Dexed fi
 - [ ] Op 2: On/Off mutes the operator (its bar goes dark grey)
 - [ ] Algo (Osc Mod): diagram changes with Algorithm; selected operator outlined yellow
 - [ ] LFO, Ctrl, Tone pages: every encoder changes the sound
+- [ ] Envelope page (Amp): Attack/Decay/Decay 2/Release change all operators; drawing follows
+- [ ] Envelope macros saved with the patch; Op 4 still shows the voice's own rates
 - [ ] Encoder push resets a parameter; holding the buttons still gives Perfm, Arp, Seq, MIDI, Settings
 
 ## 3. Patches
