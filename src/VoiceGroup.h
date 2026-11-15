@@ -24,6 +24,7 @@
 #define FM_OPS 6
 #define FM_OP_PARAMS 21
 #define FM_VOICE_SIZE 155 // Unpacked DX7 voice, including the 10 character name at 145
+#define FM_ENGINE_GAIN 0.3f // Dexed output level, see the constructor
 
 class VoiceGroup
 {
@@ -54,6 +55,11 @@ private:
 public:
     VoiceGroup(Global &global) : g(global)
     {
+        // Each Dexed note can reach half of full scale, and the notes are summed and converted
+        // to 16 bits inside Dexed, before Momentum's volume: two loud notes clipped. 0.3 leaves
+        // room for about six full level notes (more for most patches), like VOICEMIXERLEVEL does
+        // for the subtractive engine, and keeps the ensemble and reverb out of clipping.
+        g.dexed.setGain(FM_ENGINE_GAIN);
         g.dexed.loadInitVoice();
         applyOpMask();
         setEnsembleEffectMix(0.0f);
