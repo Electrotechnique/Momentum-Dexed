@@ -20,8 +20,8 @@
 #define DISPLAYTIMEOUT 700
 #define DISPLAY_FRAME_MS 30    // Minimum time between screen refreshes (~33fps max)
 #define DISPLAY_THREAD_TICKS 1 // Display thread time slice in 1ms ticks. Main loop (MIDI) waits at most this long
-#define DISPLAY_THREAD_STACK 16384 // bytes. TeensyThreads' default 1KB was too small for font and String rendering;
-                                   // 8KB was all used (CPUMonitor() showed 8192/8192) with the FM pages
+#define DISPLAY_THREAD_STACK 16384 // bytes. TeensyThreads' default 1KB was too small for font and String rendering.
+                                   // Doubled from 8KB while measuring the FM pages: set from CPUMonitor()'s figure
 #define DISPLAY_STACK_FILL 0xA5   // Unused stack pattern, for measuring the most stack used
 
 #include <utils.h>
@@ -1828,7 +1828,9 @@ static uint8_t displayThreadStack[DISPLAY_THREAD_STACK] __attribute__((aligned(8
 // Most display thread stack ever used, in bytes (for CPUMonitor)
 uint32_t displayStackUsed()
 {
-  uint32_t i = 0;
+  // TeensyThreads keeps a 4 byte overflow marker at the bottom of the stack (setStackMarker()),
+  // so the unused fill starts after it. Counting from byte 0 always showed the whole stack used.
+  uint32_t i = sizeof(uint32_t);
   while (i < DISPLAY_THREAD_STACK && displayThreadStack[i] == DISPLAY_STACK_FILL)
     i++;
   return DISPLAY_THREAD_STACK - i;
