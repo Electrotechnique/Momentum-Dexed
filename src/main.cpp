@@ -2757,8 +2757,8 @@ void loop()
             if (state == State::REINITIALISE)
                 state = reinitRestoreState;
         }
-        // Uncomment for CPU (total and by group), audio memory and display stack, once a second
-        // CPUMonitor();
+        // CPU (total and by group), audio memory, display stack and Dexed figures to USB serial, once a second
+        CPUMonitor();
         loopCount = 0;
     }
     encoders.read();
