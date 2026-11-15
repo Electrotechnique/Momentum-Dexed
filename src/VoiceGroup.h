@@ -121,14 +121,32 @@ public:
     void setSustain(bool on) { g.dexed.setSustain(on); }
     void pitchBend(int16_t bend) { g.dexed.setPitchbend(bend); } // -8192 to 8191
     void setPitchbendRange(uint8_t semitones) { g.dexed.setPitchbendRange(semitones); }
-    void setModWheel(uint8_t value) { g.dexed.setModWheel(value); }
+    // Dexed only applies controller values in ControllersRefresh(): without it the wheel,
+    // breath, foot and aftertouch did nothing until the next patch change
+    void setModWheel(uint8_t value)
+    {
+        g.dexed.setModWheel(value);
+        g.dexed.ControllersRefresh();
+    }
     // Range 0-99, target bitmapped: 1 pitch, 2 amp, 4 EG bias. (Dexed's setModWheelRange() limits
     // the range to 12, so the controller is set in one call.)
     void setModWheelController(uint8_t range, uint8_t target) { g.dexed.setMWController(range, target, 0); }
-    void setAftertouch(uint8_t value) { g.dexed.setAftertouch(value); }
+    void setAftertouch(uint8_t value)
+    {
+        g.dexed.setAftertouch(value);
+        g.dexed.ControllersRefresh();
+    }
     void setAftertouchController(uint8_t range, uint8_t target) { g.dexed.setATController(range, target, 0); }
-    void setBreathController(uint8_t value) { g.dexed.setBreathController(value); }
-    void setFootController(uint8_t value) { g.dexed.setFootController(value); }
+    void setBreathController(uint8_t value)
+    {
+        g.dexed.setBreathController(value);
+        g.dexed.ControllersRefresh();
+    }
+    void setFootController(uint8_t value)
+    {
+        g.dexed.setFootController(value);
+        g.dexed.ControllersRefresh();
+    }
     void setPortamento(uint8_t mode, uint8_t glissando, uint8_t time) { g.dexed.setPortamento(mode, glissando, time); }
     void setMasterTune(int8_t tune) { g.dexed.setMasterTune(tune); }
     void setFilterCutoff(float cutoff) { g.dexed.setFilterCutoff(cutoff); }

@@ -126,6 +126,7 @@ FLASHMEM void changeMIDIThruMode()
 
 FLASHMEM void myProgramChange(byte channel, byte program);
 void myPitchBend(byte channel, int bend);
+void myAfterTouch(byte channel, byte pressure);
 void myNoteOff(byte channel, byte note, byte velocity);
 void myNoteOn(byte channel, byte note, byte velocity);
 FLASHMEM void playNote(uint8_t note);
@@ -233,6 +234,7 @@ FLASHMEM void setup()
     usbMIDI.setHandleNoteOff(myNoteOff);
     usbMIDI.setHandleNoteOn(myNoteOn);
     usbMIDI.setHandlePitchChange(myPitchBend);
+    usbMIDI.setHandleAfterTouchChannel(myAfterTouch);
     usbMIDI.setHandleProgramChange(myProgramChange);
     usbMIDI.setHandleClock(myMIDIClock);
     usbMIDI.setHandleContinue(myMIDIClockContinue);
@@ -247,6 +249,7 @@ FLASHMEM void setup()
     MIDI.setHandleNoteOn(myNoteOn);
     MIDI.setHandleNoteOff(myNoteOff);
     MIDI.setHandlePitchBend(myPitchBend);
+    MIDI.setHandleAfterTouchChannel(myAfterTouch);
     MIDI.setHandleControlChange(myControlChange);
     MIDI.setHandleProgramChange(myProgramChange);
     MIDI.setHandleClock(myMIDIClock);
@@ -262,6 +265,7 @@ FLASHMEM void setup()
     usbHostMIDI.setHandleNoteOff(myNoteOff);
     usbHostMIDI.setHandleNoteOn(myNoteOn);
     usbHostMIDI.setHandlePitchChange(myPitchBend);
+    usbHostMIDI.setHandleAfterTouchChannel(myAfterTouch);
     usbHostMIDI.setHandleProgramChange(myProgramChange);
     usbHostMIDI.setHandleClock(myMIDIClock);
     usbHostMIDI.setHandleContinue(myMIDIClockContinue);
@@ -423,6 +427,14 @@ FLASHMEM void updatePatchnameAndIndex(String name, uint32_t index, uint32_t UID)
     groupvec[activeGroupIndex]->setPatchIndex(index);
     groupvec[activeGroupIndex]->setUID(UID);
     setPatchNoAndNameForDisp(String(index), name);
+}
+
+// Channel aftertouch (pressure): Dexed's AT Range and AT Dest on the Ctrl page
+void myAfterTouch(byte channel, byte pressure)
+{
+    if (midiDiscard)
+        return; // Panic is flushing the MIDI inputs
+    groupvec[activeGroupIndex]->setAftertouch(pressure);
 }
 
 void myPitchBend(byte channel, int bend)
