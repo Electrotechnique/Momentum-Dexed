@@ -20,10 +20,10 @@
 #define DISPLAYTIMEOUT 700
 #define DISPLAY_FRAME_MS 30    // Minimum time between screen refreshes (~33fps max)
 #define DISPLAY_THREAD_TICKS 1 // Display thread time slice in 1ms ticks. Main loop (MIDI) waits at most this long
-#define DISPLAY_THREAD_STACK 8192 // bytes. TeensyThreads' default 1KB was too small for font and String rendering
+#define DISPLAY_THREAD_STACK 16384 // bytes. TeensyThreads' default 1KB was too small for font and String rendering;
+                                   // 8KB was all used (CPUMonitor() showed 8192/8192) with the FM pages
 #define DISPLAY_STACK_FILL 0xA5   // Unused stack pattern, for measuring the most stack used
 
-#include <functional>
 #include <utils.h>
 #include "Momentum20pt7b.h"
 #include "Yeysk12pt7b.h"

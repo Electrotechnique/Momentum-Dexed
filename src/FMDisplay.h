@@ -134,6 +134,29 @@ FLASHMEM void renderKeyScaling(uint8_t op, int16_t x0, int16_t y0, int16_t w, in
   tft.drawString(fmNoteName(bp + 21), bx, y0 + h + 2);
 }
 
+// Places op and, above it, what modulates it, depth first: the first modulator goes straight
+// above, others in new columns. A plain recursive function (at most 6 deep) rather than a
+// std::function, to keep the display thread's stack use small.
+FLASHMEM void fmPlaceOp(const FMAlgorithm &a, uint8_t op, uint8_t r, int8_t *col, int8_t *row, uint8_t &cols, uint8_t &rows)
+{
+  col[op] = cols;
+  row[op] = r;
+  if (r + 1 > rows)
+    rows = r + 1;
+  bool first = true;
+  for (uint8_t i = 0; i < a.links; i++)
+  {
+    uint8_t m = a.mod[i][0];
+    if (a.mod[i][1] == op && col[m] < 0)
+    {
+      if (!first)
+        cols++;
+      fmPlaceOp(a, m, r + 1, col, row, cols, rows);
+      first = false;
+    }
+  }
+}
+
 // The algorithm diagram: carriers on the bottom row, each modulator above what it modulates.
 // The operator being edited is outlined yellow, operators switched off are grey.
 FLASHMEM void renderAlgorithm(uint8_t algorithm, uint8_t selOp, int16_t x0, int16_t y0, int16_t w, int16_t h)
@@ -146,30 +169,10 @@ FLASHMEM void renderAlgorithm(uint8_t algorithm, uint8_t selOp, int16_t x0, int1
   uint8_t cols = 0;
   uint8_t rows = 1;
 
-  // Depth first from each carrier: the first modulator goes straight above, others in new columns
-  std::function<void(uint8_t, uint8_t)> place = [&](uint8_t op, uint8_t r)
-  {
-    col[op] = cols;
-    row[op] = r;
-    if (r + 1 > rows)
-      rows = r + 1;
-    bool first = true;
-    for (uint8_t i = 0; i < a.links; i++)
-    {
-      uint8_t m = a.mod[i][0];
-      if (a.mod[i][1] == op && col[m] < 0)
-      {
-        if (!first)
-          cols++;
-        place(m, r + 1);
-        first = false;
-      }
-    }
-  };
   for (uint8_t op = 1; op <= FM_OPS; op++)
     if ((carriers & (1 << (op - 1))) && col[op] < 0)
     {
-      place(op, 0);
+      fmPlaceOp(a, op, 0, col, row, cols, rows);
       cols++;
     }
 
