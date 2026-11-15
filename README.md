@@ -60,6 +60,15 @@ Patches are saved in the bank folders as on Momentum. A patch holds the DX7 voic
 as hex) and Momentum's settings: effects, controllers, tone filter, operator on/off.
 Patches from the subtractive Momentum load as the init voice, with their name and effects.
 
+DX7 `.syx` files on the SD card go in a folder called `SYX`. On the Edit Banks page (from Save),
+push **DX7 .syx**:
+
+- **Bank** (bottom left): the bank to import into or export from
+- **Import File** (bottom right): turn to choose a file, push to add its voices to the bank as
+  new patches (32 voice banks and single voices)
+- **Export Bank** (top left): push to save the bank as 32 voice `.syx` files named after the bank
+  (a bank of more than 32 patches makes several files; the last one is filled with init voices)
+
 DX7 SysEx sent over USB MIDI (the USB-C port or the USB host port):
 
 - single voice dump: becomes the current voice (save it to keep it)
@@ -71,6 +80,5 @@ DX7 SysEx sent over USB MIDI (the USB-C port or the USB host port):
 - Test on hardware: CPU load with 16 notes plus the effects, output level (volume scaling),
   display timing
 - SysEx on the DIN MIDI input (needs a larger SysEx buffer for the MIDI library)
-- Importing .syx files from the SD card, and exporting banks
 - MIDI clock sync of the LFO (the DX7 LFO has none)
 - Panel legends for the new area names (Op, Algo, LFO, Ctrl, Tone)

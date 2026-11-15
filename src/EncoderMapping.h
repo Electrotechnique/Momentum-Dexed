@@ -1011,15 +1011,16 @@ FLASHMEM void setEncodersState(State s)
         encMap[ENC_TL].Push = true;
         encMap[ENC_TL].PushAction = State::MAIN;
 
+        // DX7 .syx import/export (Cancel is on that page)
         encMap[ENC_TR].active = true;
-        encMap[ENC_TR].Parameter = cancel;
+        encMap[ENC_TR].Parameter = syxPage;
         encMap[ENC_TR].ShowValue = false;
         encMap[ENC_TR].Value = 0;
         encMap[ENC_TR].Range = 0;
         encMap[ENC_TR].ValueStr = "";
-        encMap[ENC_TR].ParameterStr = ParameterStrMap[cancel];
+        encMap[ENC_TR].ParameterStr = ParameterStrMap[syxPage];
         encMap[ENC_TR].Push = true;
-        encMap[ENC_TR].PushAction = State::MAIN;
+        encMap[ENC_TR].PushAction = State::SYXPAGE;
 
         encMap[ENC_BL].active = true;
         encMap[ENC_BL].Parameter = bankeditselect;

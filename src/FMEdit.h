@@ -253,6 +253,9 @@ FLASHMEM void fmAssignStrings()
     ParameterStrMap[CCfilterres] = "Resonance";
     ParameterStrMap[pitchbendrange] = "Bend Range";
     ParameterStrMap[CCmonomode] = "Mono";
+    ParameterStrMap[syxPage] = "DX7 .syx";
+    ParameterStrMap[syxImport] = "Import File";
+    ParameterStrMap[syxExport] = "Export Bank";
 }
 
 FLASHMEM void configureFM(EncoderMappingStruct *enc, uint8_t id, State st)
@@ -330,11 +333,16 @@ FLASHMEM void configureResonance(EncoderMappingStruct *enc, State st)
     configureFMCC(enc, CCfilterres, currentPatch.FilterRes, 127, 0, String(int(currentPatch.FilterRes * 100 / 127.0f + 0.5f)) + F("%"), st);
 }
 
+#include "FMSyx.h"
+
 // The encoders of the FM pages
 FLASHMEM bool setFMEncodersState(State s)
 {
     switch (s)
     {
+    case State::SYXPAGE:
+        configureSyxPage();
+        return true;
     case State::OPPAGE1:
         configureFMSelect(&encMap[ENC_TL], fmOpSelect, s);
         configureFM(&encMap[ENC_TR], FMP_MODE, s);

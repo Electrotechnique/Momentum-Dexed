@@ -1077,6 +1077,8 @@ FLASHMEM void encoderCallback(unsigned enc_idx, int value, int delta)
         int8_t newDelta = encScaling(&encMap[enc_idx], delta);
         if (fmEncoderTurn(&encMap[enc_idx], newDelta))
             return; // FM parameter or operator/stage selector
+        if (syxEncoderTurn(&encMap[enc_idx], newDelta))
+            return; // .syx page
         switch (encMap[enc_idx].Parameter)
         {
         case kbdOct:
@@ -1406,7 +1408,8 @@ FLASHMEM void encoderButtonCallback(unsigned enc_idx, int buttonState)
 
     if (encMap[enc_idx].Push && encMap[enc_idx].active)
     {
-        if (fmEncoderPush(&encMap[enc_idx])) // FM parameter: back to the init voice value
+        if (fmEncoderPush(&encMap[enc_idx]) || // FM parameter: back to the init voice value
+            syxEncoderPush(&encMap[enc_idx]))  // .syx page: import, export, open
         {
             state = encMap[enc_idx].PushAction;
             setEncodersState(state);
@@ -2737,7 +2740,8 @@ void loop()
         for (uint8_t i = 0; i < MIDI_READS_PER_LOOP && MIDI.read(midiChannel); i++)
             ;
         sdCardDetect();
-        fmServiceSysex(); // DX7 voice or bank received
+        fmServiceSysex();    // DX7 voice or bank received
+        fmServiceSyxFiles(); // .syx import/export chosen on the .syx page
         sequencerLEDs();
         // MIDI clock lost without a Stop (cable pulled, DAW closed): stop following it,
         // otherwise the sequencer waits for it for ever

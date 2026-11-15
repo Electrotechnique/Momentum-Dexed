@@ -198,6 +198,7 @@ typedef enum State
   CTRLPAGE1,             // Pitch bend, mono, portamento
   CTRLPAGE2,             // Mod wheel and aftertouch
   TONEPAGE1,             // Output filter and engine
+  SYXPAGE,               // DX7 .syx files on the SD card: import and export
   FXPAGE1,               // FX parameters
   FXPAGE2,               // FX parameters
   MIDIPAGE,              // MIDI parameters

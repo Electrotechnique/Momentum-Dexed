@@ -15,7 +15,6 @@
 
 #define FM_SYSEX_VOICE_LEN 163
 #define FM_SYSEX_BANK_LEN 4104
-#define FM_PACKED_VOICE 128
 
 DMAMEM uint8_t fmSysexBuf[FM_SYSEX_BANK_LEN]; // RAM2: only needed while a dump arrives
 volatile uint16_t fmSysexLen = 0;
@@ -44,13 +43,9 @@ void fmSysexHandler(const uint8_t *data, uint16_t length, bool complete)
     }
 }
 
-// DX7 checksum of the data bytes
 FLASHMEM bool fmSysexChecksumOk(const uint8_t *data, uint16_t len, uint8_t checksum)
 {
-    uint8_t sum = 0;
-    for (uint16_t i = 0; i < len; i++)
-        sum += data[i];
-    return ((128 - (sum & 0x7F)) & 0x7F) == checksum;
+    return fmChecksum(data, len) == checksum;
 }
 
 // The 10 character voice name, trailing spaces removed
@@ -80,6 +75,34 @@ FLASHMEM void fmLoadVoiceAsPatch(const uint8_t *voice)
     setCurrentPatchData();
 }
 
+// Adds voice to bank as a new patch at the end. Returns false if the bank is full or saving failed.
+FLASHMEM bool fmAddVoiceToBank(uint8_t bank, const uint8_t *voice)
+{
+    LockGuard lock(displayLock); // The display lists the bank's patches
+    loadPatchNamesFromBank(bank);
+    if (patches.size() >= PATCHES_LIMIT && patches[patches.size() - 1].patchUID != 0)
+        return false; // Bank full
+    if (patches[0].patchUID != 0) // Not an empty bank: add a slot at the end
+        patches.push_back(PatchUIDAndName{0, EMPTYNAME});
+    fmLoadVoiceAsPatch(voice);
+    return savePatch(bank, patches.size() - 1);
+}
+
+// Adds count voices (packed, as in a bank) to bank. Returns the number added.
+FLASHMEM uint8_t fmAddPackedVoicesToBank(uint8_t bank, const uint8_t *packed, uint8_t count)
+{
+    uint8_t voice[FM_PATCH_VOICE_SIZE];
+    uint8_t added = 0;
+    for (uint8_t v = 0; v < count; v++)
+    {
+        fmUnpackVoice(&packed[v * FM_PACKED_VOICE], voice);
+        if (!fmAddVoiceToBank(bank, voice))
+            break;
+        added++;
+    }
+    return added;
+}
+
 FLASHMEM void fmImportBank(const uint8_t *packed)
 {
     if (!cardStatus)
@@ -87,23 +110,181 @@ FLASHMEM void fmImportBank(const uint8_t *packed)
         showCurrentParameterOverlay(F("DX7 Bank"), F("No SD card"));
         return;
     }
-    uint8_t voice[NUM_VOICE_PARAMETERS];
-    uint8_t imported = 0;
-    for (uint8_t v = 0; v < 32; v++)
-    {
-        groupvec[activeGroupIndex]->decodeVoice(voice, (uint8_t *)&packed[v * FM_PACKED_VOICE]);
-        loadPatchNamesFromBank(currentBankIndex);
-        if (patches.size() >= PATCHES_LIMIT && patches[patches.size() - 1].patchUID != 0)
-            break; // Bank full
-        if (patches[0].patchUID != 0) // Not an empty bank: add a slot at the end
-            patches.push_back(PatchUIDAndName{0, EMPTYNAME});
-        fmLoadVoiceAsPatch(voice);
-        if (!savePatch(currentBankIndex, patches.size() - 1))
-            break;
-        imported++;
-    }
+    uint8_t added = fmAddPackedVoicesToBank(currentBankIndex, packed, 32);
     loadPatchNamesFromBank(currentBankIndex);
-    showCurrentParameterOverlay(F("DX7 Bank"), String(imported) + F(" voices added"));
+    showCurrentParameterOverlay(F("DX7 Bank"), String(added) + F(" voices added"));
+}
+
+// ---- .syx files on the SD card (see FMSyx.h) ----
+
+DMAMEM uint8_t syxFileBuf[FM_SYSEX_BANK_LEN]; // Separate from fmSysexBuf: a USB dump can arrive meanwhile
+
+// Imports syxFiles[syxFileIndex] into the bank selected on the page (tempBankIndex)
+FLASHMEM void syxImportFile()
+{
+    if (!cardStatus || syxFileIndex >= syxFiles.size())
+        return;
+    String path = String(SYX_FOLDER) + "/" + syxFiles[syxFileIndex];
+    File file = SD.open(path.c_str());
+    if (!file)
+    {
+        syxStatus = F("Can't open the file");
+        return;
+    }
+    uint32_t size = file.size();
+    uint32_t len = size <= sizeof(syxFileBuf) ? file.read(syxFileBuf, size) : 0;
+    file.close();
+    const uint8_t *b = syxFileBuf;
+    uint8_t bank = tempBankIndex;
+    const uint8_t *packed = nullptr;
+    bool checksumOk = true;
+    uint8_t added = 0;
+    uint8_t voices = 0;
+
+    if (len == FM_SYSEX_BANK_LEN && b[0] == 0xF0 && b[1] == 0x43 && b[3] == 0x09)
+    {
+        packed = &b[6];
+        checksumOk = fmChecksum(packed, 4096) == b[4102];
+    }
+    else if (len == 4096) // Bank data without the SysEx header
+        packed = b;
+    if (packed)
+    {
+        voices = 32;
+        added = fmAddPackedVoicesToBank(bank, packed, 32);
+    }
+    else if (len == FM_SYSEX_VOICE_LEN && b[0] == 0xF0 && b[1] == 0x43 && b[3] == 0x00)
+    {
+        voices = 1;
+        checksumOk = fmChecksum(&b[6], 155) == b[161];
+        added = fmAddVoiceToBank(bank, &b[6]) ? 1 : 0;
+    }
+    else
+    {
+        syxStatus = F("Not a DX7 voice or bank");
+        return;
+    }
+    {
+        LockGuard lock(displayLock);
+        loadPatchNamesFromBank(bank);
+        syxStatus = String(added) + F(" of ") + String(voices) + F(" added");
+        if (added < voices)
+            syxStatus += F(": bank full");
+        if (!checksumOk)
+            syxStatus += F(" (bad checksum)");
+        // Play the first new patch
+        if (added > 0)
+        {
+            currentBankIndex = bank;
+            currentPatchIndex = patches.size() - added;
+            recallPatch(bank, patches[currentPatchIndex].patchUID);
+        }
+    }
+}
+
+// A file name from the bank name: characters FAT can't have replaced, and not overwriting a file
+FLASHMEM String syxExportName(uint8_t bank, uint8_t part, uint8_t parts)
+{
+    String base = bankNames[bank];
+    for (uint16_t i = 0; i < base.length(); i++)
+    {
+        char c = base[i];
+        if (c < 32 || strchr("\\/:*?\"<>|", c))
+            base.setCharAt(i, '_');
+    }
+    base.trim();
+    if (base.length() == 0)
+        base = String(F("Bank ")) + String(bank + 1);
+    if (parts > 1)
+        base += " " + String(part + 1);
+    String path = String(SYX_FOLDER) + "/" + base + ".syx";
+    for (uint8_t n = 2; SD.exists(path.c_str()) && n < 100; n++)
+        path = String(SYX_FOLDER) + "/" + base + " (" + String(n) + ").syx";
+    return path;
+}
+
+// Writes the selected bank (tempBankIndex) as 32 voice .syx files, padded with init voices
+FLASHMEM void syxExportBank()
+{
+    if (!cardStatus)
+        return;
+    uint8_t bank = tempBankIndex;
+    Patches bankPatches;
+    {
+        LockGuard lock(displayLock);
+        loadPatchNamesFromBank(bank);
+        bankPatches = patches;
+    }
+    uint8_t count = bankPatches[0].patchUID == 0 ? 0 : bankPatches.size();
+    if (count == 0)
+    {
+        syxStatus = F("The bank is empty");
+        return;
+    }
+    if (!SD.exists(SYX_FOLDER))
+        SD.mkdir(SYX_FOLDER);
+    PatchStruct current = currentPatch; // loadPatch() reads into currentPatch: put it back after
+    uint8_t parts = (count + 31) / 32;
+    uint8_t voice[FM_PATCH_VOICE_SIZE];
+    String lastName;
+    bool ok = true;
+    for (uint8_t part = 0; part < parts && ok; part++)
+    {
+        uint8_t *packed = &syxFileBuf[6];
+        for (uint8_t v = 0; v < 32; v++)
+        {
+            uint8_t i = part * 32 + v;
+            if (i < count && loadPatch(bank, bankPatches[i].patchUID) && currentPatch.VoiceValid)
+            {
+                memcpy(voice, currentPatch.Voice, FM_PATCH_VOICE_SIZE);
+                // Voice name from the patch name, 10 characters
+                for (uint8_t c = 0; c < 10; c++)
+                {
+                    char ch = c < strlen(currentPatch.PatchName) ? currentPatch.PatchName[c] : ' ';
+                    voice[145 + c] = (ch >= 32 && ch < 127) ? ch : ' ';
+                }
+            }
+            else
+                fmInitVoice(voice); // Empty slot, or a patch without an FM voice
+            fmPackVoice(voice, &packed[v * FM_PACKED_VOICE]);
+        }
+        const uint8_t header[6] = {0xF0, 0x43, 0x00, 0x09, 0x20, 0x00};
+        memcpy(syxFileBuf, header, 6);
+        syxFileBuf[4102] = fmChecksum(packed, 4096);
+        syxFileBuf[4103] = 0xF7;
+        String path = syxExportName(bank, part, parts);
+        File file = SD.open(path.c_str(), FILE_WRITE);
+        ok = file && file.write(syxFileBuf, FM_SYSEX_BANK_LEN) == FM_SYSEX_BANK_LEN;
+        if (file)
+            file.close();
+        lastName = path.substring(strlen(SYX_FOLDER) + 1);
+    }
+    currentPatch = current;
+    LockGuard lock(displayLock);
+    loadPatchNamesFromBank(bank);
+    syxScanFiles();
+    if (!ok)
+        syxStatus = F("Couldn't write the file");
+    else if (parts == 1)
+        syxStatus = String(F("Saved ")) + lastName;
+    else
+        syxStatus = String(F("Saved ")) + String(parts) + F(" files");
+    setEncodersState(state); // The file list changed
+}
+
+// From loop()
+FLASHMEM void fmServiceSyxFiles()
+{
+    if (syxImportRequested)
+    {
+        syxImportRequested = false;
+        syxImportFile();
+    }
+    if (syxExportRequested)
+    {
+        syxExportRequested = false;
+        syxExportBank();
+    }
 }
 
 // From loop()

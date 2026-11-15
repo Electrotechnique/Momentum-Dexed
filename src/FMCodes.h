@@ -7,6 +7,9 @@
 #define fmOpSelect 194     // Operator 1-6
 #define fmStageSelect 195  // Operator envelope stage 1-4
 #define fmPStageSelect 196 // Pitch envelope stage 1-4
+#define syxPage 197        // Edit Banks: open the DX7 .syx page
+#define syxImport 198      // .syx page: choose a file / import it
+#define syxExport 199      // .syx page: export the bank
 #define FM_PARAM_BASE 200
 
 enum FMParamId

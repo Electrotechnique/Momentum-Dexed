@@ -28,6 +28,14 @@ the Serial Monitor open: it prints CPU, audio memory, display stack and Dexed fi
 - [ ] 32 voice bank dump: 32 patches added to the current bank, names correct
 - [ ] Editing in the Dexed plugin changes the sound live
 
+## 4b. .syx files (SD card, SYX folder)
+- [ ] Edit Banks > DX7 .syx lists the files; Bank and Import File scroll
+- [ ] Import a 32 voice bank: "32 of 32 added", names correct, sounds right (compare in Dexed)
+- [ ] Import a single voice file
+- [ ] Import into a nearly full bank: "n of 32 added: bank full"
+- [ ] Export a bank, then import the exported file into an empty bank: same sounds
+- [ ] Open an exported file in the Dexed plugin: same voices and names
+
 ## 5. Arp, sequencer, effects
 - [ ] Arpeggiator and sequencer play the FM voice, start/stop as before
 - [ ] Ensemble and reverb pages work

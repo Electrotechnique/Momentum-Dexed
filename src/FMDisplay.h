@@ -315,6 +315,60 @@ FLASHMEM void renderTonePage()
   renderFMPageChrome(F("Tone"), 1, 1);
 }
 
+// DX7 .syx files: banks on the left, files in /SYX on the right
+FLASHMEM void renderSyxPage()
+{
+  tft.fillScreen(ILI9341_BLACK);
+  tft.setFont(Arial_16);
+  tft.setTextColor(ILI9341_YELLOW);
+  tft.setTextDatum(TC_DATUM);
+  tft.drawString(F("DX7 .syx Files"), 160, 19);
+  tft.drawFastHLine(10, 42, tft.width() - 20, ILI9341_RED);
+  renderBankList();
+  tft.setTextDatum(TL_DATUM);
+  tft.setFont(Arial_12);
+  if (!cardStatus)
+  {
+    tft.setTextColor(ILI9341_RED);
+    tft.drawString(F("No SD card"), 110, 57);
+  }
+  else if (syxFiles.size() == 0)
+  {
+    tft.setTextColor(ILI9341_DARKYELLOW);
+    tft.drawString(F("No .syx files in"), 110, 57);
+    tft.drawString(F("the SYX folder"), 110, 77);
+  }
+  else
+  {
+    // Up to 7 files, scrolled to keep the selected one in view
+    const uint8_t rows = 7;
+    uint8_t first = syxFileIndex >= rows ? syxFileIndex - rows + 1 : 0;
+    for (uint8_t r = 0; r < rows && first + r < syxFiles.size(); r++)
+    {
+      uint8_t i = first + r;
+      String name = syxFiles[i];
+      if (name.length() > 22)
+        name = name.substring(0, 20) + "..";
+      int16_t y = 57 + 20 * r;
+      if (i == syxFileIndex)
+      {
+        tft.getTextBounds(name, 110, y, &xt, &yt, &wt, &ht);
+        tft.fillRect(108, yt - 1, wt + 4, ht + 2, ILI9341_ORANGE);
+        tft.setTextColor(ILI9341_BLACK);
+      }
+      else
+        tft.setTextColor(ILI9341_DARKYELLOW);
+      tft.drawString(name, 110, y);
+    }
+  }
+  if (syxStatus.length() > 0)
+  {
+    tft.setTextColor(ILI9341_WHITE); // Right column, clear of the bank list and the corners
+    tft.drawString(syxStatus, 110, 195);
+  }
+  renderCorners();
+}
+
 // Main page: algorithm and operator levels, top right
 FLASHMEM void renderMainPageFM()
 {

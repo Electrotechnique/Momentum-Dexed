@@ -1731,6 +1731,9 @@ void displayThread()
       case State::TONEPAGE1:
         renderTonePage();
         break;
+      case State::SYXPAGE:
+        renderSyxPage();
+        break;
       case State::FXPAGE1:
         renderFXPage(1);
         break;
