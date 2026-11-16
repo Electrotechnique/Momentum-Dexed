@@ -31,7 +31,12 @@
 #include <ili9341_t3n_font_Arial.h>
 #include <ili9341_t3n_font_ArialBold.h>
 
-#include <Fonts/FreeMono9pt7b.h>
+#include "FreeMono9pt7b.h"
+
+// GFX fonts (Yeysk, Momentum20, FreeMono) must be built with ILI9341_t3n's own GFXfont, in which
+// first and last are bytes: the library is compiled with it. Adafruit GFX's has 16 bit first and
+// last, and with it the library read every font's last character as 0 and drew nothing.
+static_assert(sizeof(((GFXfont *)nullptr)->first) == 1, "GFXfont isn't ILI9341_t3n's: is Adafruit_GFX.h included?");
 
 #define PULSE 1
 #define VAR_TRI 2

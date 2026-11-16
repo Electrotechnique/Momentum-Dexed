@@ -46,11 +46,10 @@
     Any problems with code design and functionality are my own.
 
   Additional libraries:
-    Janila Array, Adafruit_GFX, ArduinoJSON, TeensyTimerTool, TeensyThreads, RokkitHash (available in Arduino libraries manager)
+    Janila Array, ArduinoJSON, TeensyTimerTool, TeensyThreads, RokkitHash (available in Arduino libraries manager)
 */
 #define DEBUG 0
 
-#include <Adafruit_GFX.h>
 #include <ILI9341_t3n.h>
 #include <vector>
 #include "Audio.h" //Using local version to override Teensyduino version
