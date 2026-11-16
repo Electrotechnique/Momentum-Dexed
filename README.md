@@ -35,7 +35,7 @@ pio run
 Format the card as FAT32 and copy everything in this repository's `SDCard` folder to its root:
 
 - `Bank1`: 32 starter patches, strings and brass
-- `Banknames`: the names of the 8 banks
+- `Banknames`: the names of the 8 banks, Bank 1 to Bank 8 (rename them on the Edit Banks page)
 - `SYX`: DX7 voice banks, from the [Dexed](https://github.com/asb2m10/dexed) project, to play
   with the voice browser or import. Add your own `.syx` banks here
 

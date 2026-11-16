@@ -10,8 +10,9 @@ the Serial Monitor open: it prints CPU, audio memory, display stack and Dexed fi
 - [ ] Volume buttons change the level; no clipping at full volume with several notes
 
 ## 1b. SD card
-- [ ] Blank card: Bank1-8, Sequences, Performances and SYX folders made; init voice in Bank1
-- [ ] The repository's SDCard folder copied: Bank1 "Strings and Brass" lists 32 patches in
+- [ ] Blank card: Bank1-8, Sequences, Performances and SYX folders made; init voice in Bank1;
+  the banks are named Bank 1 to Bank 8
+- [ ] The repository's SDCard folder copied: Bank 1 lists 32 patches in
   order (STRINGS 2 to Brass Ens), each plays; the voice browser lists the SYX banks
 
 ## 2. Pages and encoders

@@ -84,7 +84,8 @@ const static char *BANKS_FILE_NAME = "Banknames";
 const static char *BANK_FOLDER_NAMES[] = {"Bank1", "Bank2", "Bank3", "Bank4", "Bank5", "Bank6", "Bank7", "Bank8"};
 const static char *BANK_FOLDER_NAMES_SLASH[] = {"Bank1/", "Bank2/", "Bank3/", "Bank4/", "Bank5/", "Bank6/", "Bank7/", "Bank8/"};
 // Defaults to store on blank SD card
-const static char *BANKS_FILE_CONTENTS = "{\"Bank1\": \"Strings\",\"Bank2\": \"Basses\", \"Bank3\": \"Keys\",\"Bank4\": \"FX\",\"Bank5\": \"User 1\",\"Bank6\": \"User 2\",\"Bank7\": \"User 3\",\"Bank8\": \"User 4\"}";
+// Plain names: imported and received banks mix sounds, so names by sound wouldn't fit them
+const static char *BANKS_FILE_CONTENTS = "{\"Bank1\":\"Bank 1\",\"Bank2\":\"Bank 2\",\"Bank3\":\"Bank 3\",\"Bank4\":\"Bank 4\",\"Bank5\":\"Bank 5\",\"Bank6\":\"Bank 6\",\"Bank7\":\"Bank 7\",\"Bank8\":\"Bank 8\"}";
 
 // Friendly bank names from Banknames file - defaults
 static String bankNames[8] = {"Strings", "Basses", "Keys", "FX", "User 1", "User 2", "User 3", "User 4"};
