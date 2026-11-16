@@ -24,6 +24,10 @@ struct PatchUIDAndName
 
 typedef Array<PatchUIDAndName, PATCHES_LIMIT> Patches;
 
+// The patch index file of a bank: one entry per patch. 1024 bytes held only 54 entries and 2048
+// held 107 (measured), so banks of more patches lost index entries; 3072 holds about 160.
+#define PATCH_INDEX_JSON_SIZE 3072
+
 Patches patches;
 
 FLASHMEM void concatBankAndUID(uint8_t bankIndex, uint32_t uid, char *result)
@@ -47,7 +51,7 @@ FLASHMEM void insertIntoPatchIndexFile(uint8_t bankIndex, uint8_t index, uint32_
     return;
   char result[30];
   concatBankAndFilename(bankIndex, PATCH_INDEX_FILE_NAME, result);
-  DynamicJsonDocument doc(1024);
+  DynamicJsonDocument doc(PATCH_INDEX_JSON_SIZE);
 
   File file = SD.open(result);
   if (!file)
@@ -87,7 +91,7 @@ FLASHMEM void recreatePatchIndexFile(uint8_t bankIndex)
   concatBankAndFilename(bankIndex, PATCH_INDEX_FILE_NAME, result);
   SD.remove(result); // Delete PatchIndex file
   File file = SD.open(result, FILE_WRITE);
-  StaticJsonDocument<1024> doc;
+  DynamicJsonDocument doc(PATCH_INDEX_JSON_SIZE);
   for (uint8_t i = 0; i < patches.size(); i++)
   {
     doc[String(i + 1)] = patches[i].patchUID;
@@ -192,7 +196,7 @@ FLASHMEM void loadPatchNamesFromBank(uint8_t bankIndex)
     File file = SD.open(result);
     if (file)
     {
-      StaticJsonDocument<2048> doc;
+      DynamicJsonDocument doc(PATCH_INDEX_JSON_SIZE);
       DeserializationError error = deserializeJson(doc, file);
       // file.close();
       if (error)
@@ -220,6 +224,22 @@ FLASHMEM void loadPatchNamesFromBank(uint8_t bankIndex)
         }
       }
       file.close();
+      // Patches on the card but not in the index go at the end, and the index is written again.
+      // (The index used to be written with room for only 54 patches, so larger banks lost some.)
+      bool missing = false;
+      for (uint8_t i = 0; i < patchesTemp.size(); i++)
+      {
+        bool found = false;
+        for (uint8_t j = 0; j < patches.size() && !found; j++)
+          found = patches[j].patchUID == patchesTemp[i].patchUID;
+        if (!found && !patches.full())
+        {
+          patches.push_back(patchesTemp[i]);
+          missing = true;
+        }
+      }
+      if (missing)
+        recreatePatchIndexFile(bankIndex);
     }
   }
 }
