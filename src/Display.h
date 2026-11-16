@@ -317,7 +317,7 @@ FLASHMEM void renderPerfIndicator()
   tft.drawString(F("PER"), 219, 76);
 }
 
-FLASHMEM void renderPageIndicator(uint8_t pages, uint8_t current)
+FLASHMEM void renderPageIndicator(uint8_t pages, uint8_t current, int16_t y = 175)
 {
   if (pages < 2)
     return;
@@ -325,11 +325,11 @@ FLASHMEM void renderPageIndicator(uint8_t pages, uint8_t current)
   {
     if (i + 1 == current)
     {
-      tft.fillRect(130 + (i * 23) - (pages * pages), 175, 20, 7, ILI9341_BLUE);
+      tft.fillRect(130 + (i * 23) - (pages * pages), y, 20, 7, ILI9341_BLUE);
     }
     else
     {
-      tft.drawRect(130 + (i * 23) - (pages * pages), 175, 20, 7, ILI9341_BLUE);
+      tft.drawRect(130 + (i * 23) - (pages * pages), y, 20, 7, ILI9341_BLUE);
     }
   }
 }

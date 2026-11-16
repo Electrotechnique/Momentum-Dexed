@@ -12,19 +12,20 @@
 #define FM_DRAW_BOTTOM 146
 
 // The page title, voice grid, indicators, page indicator and encoder corners
-FLASHMEM void renderFMPageChrome(String title, uint8_t pages, uint8_t no)
+// titleY and indicatorY: lower on a page that needs more room for its drawing
+FLASHMEM void renderFMPageChrome(String title, uint8_t pages, uint8_t no, int16_t titleY = 150, int16_t indicatorY = 175)
 {
   tft.setFont(Arial_16);
   tft.setTextColor(ILI9341_BLUE);
   tft.setTextDatum(TC_DATUM);
-  tft.drawString(title, 160, 150);
+  tft.drawString(title, 160, titleY);
   renderVoiceGrid();
   renderArpIndicator();
   if (!arpRunning)
     renderSeqIndicator();
   renderMidiClk();
   renderKeyboardIndicator();
-  renderPageIndicator(pages, no);
+  renderPageIndicator(pages, no, indicatorY);
   renderCorners();
 }
 
@@ -176,9 +177,9 @@ FLASHMEM void renderAlgorithm(uint8_t algorithm, uint8_t selOp, int16_t x0, int1
       cols++;
     }
 
-  const int16_t boxW = 20, boxH = 11;
+  const int16_t boxW = 20, boxH = 12;
   int16_t pitchX = min((int16_t)34, (int16_t)(w / max((uint8_t)1, cols)));
-  int16_t pitchY = min((int16_t)15, (int16_t)((h - 6) / rows));
+  int16_t pitchY = min((int16_t)20, (int16_t)((h - 10) / rows)); // Room for the output line and the feedback loop
   int16_t left = x0 + (w - pitchX * cols) / 2;
   int16_t bottom = y0 + h - 6 - boxH; // Top of the carrier row, room for the output line
   auto bx = [&](uint8_t op) -> int16_t
@@ -233,7 +234,8 @@ FLASHMEM void renderAlgorithm(uint8_t algorithm, uint8_t selOp, int16_t x0, int1
       tft.drawRect(x - 2, y - 2, boxW + 4, boxH + 4, ILI9341_YELLOW);
     }
     tft.setTextColor(carrier ? ILI9341_BLACK : ILI9341_WHITE);
-    tft.drawString(String(op), x + boxW / 2, y + boxH / 2 + 1);
+    // Arial_8 digits are 8 rows from 3 above the MC_DATUM y: centred in the box, 1 row clear of each border
+    tft.drawString(String(op), x + boxW / 2, y + 3 + (boxH - 8) / 2);
   }
 }
 
@@ -287,8 +289,10 @@ FLASHMEM void renderAlgoPage(uint8_t no)
   tft.fillScreen(ILI9341_BLACK);
   if (no == 1)
   {
-    renderAlgorithm(groupvec[activeGroupIndex]->getVoiceParam(DEXED_ALGORITHM), fmOp, 40, FM_DRAW_TOP - 2, 240, FM_DRAW_BOTTOM - FM_DRAW_TOP + 2);
-    renderFMPageChrome(F("Algorithm"), 2, no);
+    // The diagram takes the title's place (it's in the top left corner too): title and page
+    // indicator go lower, so four rows of operators aren't squashed
+    renderAlgorithm(groupvec[activeGroupIndex]->getVoiceParam(DEXED_ALGORITHM), fmOp, 40, FM_DRAW_TOP - 2, 240, 80);
+    renderFMPageChrome(F("Algorithm"), 2, no, 176, 198);
   }
   else
   {
