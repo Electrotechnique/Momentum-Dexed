@@ -300,6 +300,10 @@ FLASHMEM void checkSDCardStructure()
   {
     SD.mkdir(PERFORMANCE_FOLDER_NAME);
   }
+  if (!SD.exists("SYX/")) // DX7 .syx files: the voice browser and import (FMSyx.h)
+  {
+    SD.mkdir("SYX");
+  }
 
   if (!SD.exists(BANKS_FILE_NAME))
   {
