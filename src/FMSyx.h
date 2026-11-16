@@ -187,6 +187,27 @@ FLASHMEM void fmVoiceName(const uint8_t *voice, char *name, size_t size)
     fmNameStr(&voice[145], name, size);
 }
 
+// A patch for a DX7 voice (155 bytes) from outside: a .syx file (import, voice browser) or SysEx.
+// The voice has no place for Momentum's settings: it gets the effects of effectsFrom (the patch
+// that was playing), and the defaults for the rest (controllers, tone, envelope macros, all
+// operators on, the Mark I engine).
+FLASHMEM PatchStruct fmVoicePatch(const uint8_t *voice, const PatchStruct &effectsFrom)
+{
+    PatchStruct ps;
+    memcpy(ps.Voice, voice, FM_PATCH_VOICE_SIZE);
+    ps.VoiceValid = true;
+    fmVoiceName(voice, ps.PatchName, sizeof(ps.PatchName));
+    ps.EnsembleEffectAmt = effectsFrom.EnsembleEffectAmt;
+    ps.EnsembleEffectMix = effectsFrom.EnsembleEffectMix;
+    ps.EnsembleEffectDepth = effectsFrom.EnsembleEffectDepth;
+    ps.EnsembleEffectDelay = effectsFrom.EnsembleEffectDelay;
+    ps.ReverbEffectTime = effectsFrom.ReverbEffectTime;
+    ps.ReverbEffectMix = effectsFrom.ReverbEffectMix;
+    ps.ReverbEffectDamping = effectsFrom.ReverbEffectDamping;
+    ps.ReverbEffectBassCut = effectsFrom.ReverbEffectBassCut;
+    return ps;
+}
+
 // Reads SYX_FOLDER/name into buf (FM_SYSEX_BANK_LEN bytes) and finds the voices in it.
 // Returns the number of voices: 32 (a bank, *packed true: 128 byte voices) or 1 (a single
 // 155 byte voice), 0 if it isn't a DX7 bank or voice, -1 if the file can't be opened.

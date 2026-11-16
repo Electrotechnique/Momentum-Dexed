@@ -7,7 +7,7 @@
   - Cancel (TR): back to the patch that was playing
 
   The voice plays with the effects of the patch that was playing when the browser opened, and
-  the default controllers, tone and envelope macros. Data and encoders are in FMSyx.h.
+  the defaults for the rest, as an imported voice (fmVoicePatch()). Data and encoders are in FMSyx.h.
 */
 #ifndef MOMENTUM_FM_VOICE_BROWSER_H
 #define MOMENTUM_FM_VOICE_BROWSER_H
@@ -43,20 +43,10 @@ FLASHMEM void vbPlaySelected()
     }
     if (vbCount == 0)
         return;
-    PatchStruct ps; // Defaults: controllers, tone, macros, all operators on
-    vbGetVoice(vbVoiceIndex, ps.Voice);
-    ps.VoiceValid = true;
-    fmVoiceName(ps.Voice, ps.PatchName, sizeof(ps.PatchName));
-    ps.EnsembleEffectAmt = vbBasePatch.EnsembleEffectAmt;
-    ps.EnsembleEffectMix = vbBasePatch.EnsembleEffectMix;
-    ps.EnsembleEffectDepth = vbBasePatch.EnsembleEffectDepth;
-    ps.EnsembleEffectDelay = vbBasePatch.EnsembleEffectDelay;
-    ps.ReverbEffectTime = vbBasePatch.ReverbEffectTime;
-    ps.ReverbEffectMix = vbBasePatch.ReverbEffectMix;
-    ps.ReverbEffectDamping = vbBasePatch.ReverbEffectDamping;
-    ps.ReverbEffectBassCut = vbBasePatch.ReverbEffectBassCut;
+    uint8_t voice[FM_PATCH_VOICE_SIZE];
+    vbGetVoice(vbVoiceIndex, voice);
     silence(); // As a patch recall: no notes hanging on with the old voice
-    currentPatch = ps;
+    currentPatch = fmVoicePatch(voice, vbBasePatch); // As an import: the effects of that patch
     setCurrentPatchData();
 }
 

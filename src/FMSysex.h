@@ -45,14 +45,10 @@ FLASHMEM bool fmSysexChecksumOk(const uint8_t *data, uint16_t len, uint8_t check
     return fmChecksum(data, len) == checksum;
 }
 
-// Makes voice (155 bytes, unpacked) the current patch, with the default effects and controls
+// Makes voice (155 bytes, unpacked) the current patch, keeping the current effects (fmVoicePatch())
 FLASHMEM void fmLoadVoiceAsPatch(const uint8_t *voice)
 {
-    PatchStruct ps;
-    memcpy(ps.Voice, voice, FM_PATCH_VOICE_SIZE);
-    ps.VoiceValid = true;
-    fmVoiceName(voice, ps.PatchName, sizeof(ps.PatchName));
-    currentPatch = ps;
+    currentPatch = fmVoicePatch(voice, currentPatch);
     setCurrentPatchData();
 }
 
