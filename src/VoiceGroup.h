@@ -227,8 +227,14 @@ public:
     inline uint8_t getMonophonicMode() { return monophonic; }
     void setSameVoiceRetrig(bool) {} // Dexed always reuses the voice of a repeated note
 
-    // Is voice i sounding, and which note (for the voice grid)
-    bool voiceOn(uint8_t i) { return i < FM_MAX_NOTES && g.dexed.voices[i].live; }
+    // Voice i for the voice grid: 0 silent, 1 fading out in its release, 2 held by the key or a pedal
+    uint8_t voiceState(uint8_t i)
+    {
+        if (i >= FM_MAX_NOTES || !g.dexed.voices[i].live)
+            return 0;
+        const ProcessorVoice &v = g.dexed.voices[i];
+        return (v.keydown || v.sustained || v.sostenuted) ? 2 : 1;
+    }
     uint8_t size() { return FM_MAX_NOTES; }
 
     // The audio processing overran: stop the oldest sounding note
@@ -242,7 +248,17 @@ public:
             g.dexed.voices[oldest].live = false;
     }
 
-    void serviceVoices() {}
+    // From loop(). Synth_Dexed only marks a voice free once its release has gone silent inside
+    // getNumNotesPlaying(), which was called once a second (CPUMonitor): until then a finished
+    // voice was still computed, and lit on the voice grid. Every 10 ms frees it in time.
+    elapsedMillis sinceVoiceCheck;
+    void serviceVoices()
+    {
+        if (sinceVoiceCheck < 10)
+            return;
+        sinceVoiceCheck = 0;
+        g.dexed.getNumNotesPlaying();
+    }
     void updateVoices() {}
 
     void setVolume(float amount) { g.volumeMixer.gain(0, amount); }

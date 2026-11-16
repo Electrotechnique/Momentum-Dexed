@@ -68,13 +68,14 @@ uint32_t paramType = 0;
 uint32_t peakCount = 0;
 uint16_t prevLen = 0;
 
-size_t max_rows = 3;
-size_t x_step = 10;
-size_t y_step = 10;
+// Voice grid: 16 voices as 4 x 4 boxes of 8 pixels, clear of the bank name below (y 94)
+size_t max_rows = 4;
+size_t x_step = 9;
+size_t y_step = 9;
 size_t x_end = 175;
 size_t x_start = x_end - (x_step * ceil(global.maxVoices() / float(max_rows))) + x_step;
-size_t y_start = 57;
-size_t y_end = 77;
+size_t y_start = 55;
+size_t y_end = y_start + y_step * (max_rows - 1);
 size_t idx = 0;
 
 int16_t xt = 0;
@@ -82,7 +83,6 @@ int16_t yt = 0;
 uint16_t wt = 0;
 uint16_t ht = 0;
 
-const uint32_t colourPriority[5] = {ILI9341_BLACK, ILI9341_BLUE, ILI9341_YELLOW, ILI9341_ORANGE, ILI9341_MAROON};
 const uint32_t encTriColour[4] = {ILI9341_LIGHTBLUE, ILI9341_YELLOW, ILI9341_WHITE, ILI9341_ORANGE};
 
 unsigned long timer = 0;
@@ -437,24 +437,16 @@ FLASHMEM void renderPeak()
 
 FLASHMEM void renderVoiceGrid()
 {
-  size_t fillColour[global.maxVoices()] = {};
-  size_t borderColour[global.maxVoices()] = {};
-  // Select colours based on voice state.
-  for (uint8_t i = 0; i < global.maxVoices(); i++)
-  {
-    borderColour[i] = 1;
-    fillColour[i] = groupvec[activeGroupIndex]->voiceOn(i) ? 1 : 0;
-  }
-
-  // Draw rectangles to represent each voice.
+  // Blue while the key (or sustain pedal) holds the note, dark blue while it fades out in its
+  // release, empty when silent
+  const uint16_t fill[3] = {ILI9341_BLACK, ILI9341_NAVY, ILI9341_BLUE};
   idx = 0;
   for (size_t y = y_start; y <= y_end; y += y_step)
   {
     for (size_t x = x_start; x <= x_end; x += x_step)
     {
-      // Always draw border to indicate timbre.
-      tft.fillRect(x, y, 8, 8, colourPriority[fillColour[idx]]);
-      tft.drawRect(x, y, 8, 8, colourPriority[borderColour[idx]]);
+      tft.fillRect(x, y, 8, 8, fill[groupvec[activeGroupIndex]->voiceState(idx)]);
+      tft.drawRect(x, y, 8, 8, ILI9341_BLUE);
       idx++;
       if (idx >= global.maxVoices())
       {
