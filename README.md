@@ -32,16 +32,22 @@ pio run
 
 ## SD card
 
-Format the card as FAT32 and copy everything in this repository's `SDCard` folder to its root:
+To set up a card with the starter patches and the DX7 banks:
 
-- `Bank1`: 32 starter patches, strings and brass
-- `Banknames`: the names of the 8 banks, Bank 1 to Bank 8 (rename them on the Edit Banks page)
-- `SYX`: DX7 voice banks, from the [Dexed](https://github.com/asb2m10/dexed) project, to play
-  with the voice browser or import. Add your own `.syx` banks here
+1. Get this repository's files: on GitHub, **Code > Download ZIP**, and unzip it (or clone it).
+2. Format the micro SD card as **FAT32**. Windows formats cards of up to 32 GB as FAT32.
+3. Copy everything **inside** the `SDCard` folder to the root of the card (not the `SDCard`
+   folder itself). The card then has:
+   - `Bank1`: 32 starter patches, strings and brass
+   - `Banknames`: the names of the 8 banks, Bank 1 to Bank 8 (rename them on the Edit Banks page)
+   - `SYX`: DX7 voice banks from the [Dexed](https://github.com/asb2m10/dexed) project, to play
+     with the voice browser or import. Add your own `.syx` banks here
+4. Put the card in Momentum and switch on. Momentum makes the other folders (Bank2 to Bank8,
+   Sequences, Performances) when it starts.
 
-A blank card works too: Momentum makes the bank, Sequences, Performances and SYX folders when
-it starts, with the init voice in Bank1. `tools/make_bank.py` makes a bank folder from voices
-in `.syx` files, as the starter bank was made.
+A blank card works too: Momentum makes all the folders, with the init voice in Bank1, and the
+SYX folder is ready for `.syx` files. `tools/make_bank.py` makes a bank folder from voices in
+`.syx` files, as the starter bank was made.
 
 ## Pages
 
