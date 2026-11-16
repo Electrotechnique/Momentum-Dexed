@@ -11,6 +11,11 @@
 #define syxImport 198      // .syx page: choose a file / import it
 #define syxExport 199      // .syx page: export the bank
 #define FM_PARAM_BASE 200
+// Voice browser (Recall page): codes after the FM parameters (200 to 200 + FMP_COUNT - 1)
+#define vbOpen 240  // Recall page: open the voice browser
+#define vbFile 241  // Voice browser: choose a .syx file
+#define vbVoice 242 // Voice browser: choose a voice (plays it), push to keep it
+#define vbSave 243  // Voice browser: save the voice as a patch
 
 enum FMParamId
 {
@@ -54,6 +59,8 @@ enum FMParamId
     FMP_MACRO_RELEASE,
     FMP_COUNT
 };
+
+static_assert(FM_PARAM_BASE + FMP_COUNT <= vbOpen, "FM parameter codes run into the voice browser codes");
 
 inline bool isFMParam(uint8_t code) { return code >= FM_PARAM_BASE && code < FM_PARAM_BASE + FMP_COUNT; }
 

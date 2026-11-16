@@ -134,6 +134,8 @@ FLASHMEM void setCurrentPatchData();
 FLASHMEM void updatePatchnameAndIndex(String name, uint32_t index, uint32_t UID);
 FLASHMEM void storeVoiceInCurrentPatch();
 FLASHMEM void recallPatch(uint8_t bank, long patchUID);
+FLASHMEM void silence();
+FLASHMEM bool startPatchSaving();
 FLASHMEM void recallPerformance(uint8_t filename);
 FLASHMEM void myControlChange(byte channel, byte control, byte value);
 FLASHMEM void usbHostControlChange(byte channel, byte control, byte value);
@@ -154,6 +156,7 @@ void buttonCallback(unsigned button_idx, int state);
 #include "Settings.h"
 #include "FirmwareUpdate.h"
 #include "FMSysex.h"
+#include "FMVoiceBrowser.h"
 
 boolean firstPatchLoaded = false;
 
@@ -858,6 +861,30 @@ FLASHMEM void silence()
     groupvec[activeGroupIndex]->closeEnvelopes();
 }
 
+// Save button (and Save on the voice browser): the patch naming page, for a new patch at the
+// end of the current bank. Returns false if the bank is full.
+FLASHMEM bool startPatchSaving()
+{
+    singleLED(ledColour::RED, 7);
+    loadBankNames(); // If in the middle of bank renaming and cancelling
+    tempBankIndex = currentBankIndex;
+    if (patches.size() >= PATCHES_LIMIT)
+    {
+        if (DEBUG)
+            Serial.println(F("Over patch limit on this bank"));
+        return false;
+    }
+    // Prompt for patch name
+    currentPatchName = currentPatch.PatchName;
+    state = State::PATCHSAVING;
+    if (patches[0].patchUID != 0 && patches.back().patchUID != 0)
+        patches.push_back(PatchUIDAndName{0, EMPTYNAME});
+    currentPatchIndex = patches.size() - 1;
+    if (DEBUG)
+        Serial.printf(F("currentPatchIndex: %i\n"), currentPatchIndex);
+    return true;
+}
+
 // Debounced patch recall, see selectPatchForRecall()
 #define PATCH_RECALL_DELAY_MS 150
 boolean patchRecallPending = false;
@@ -1093,6 +1120,8 @@ FLASHMEM void encoderCallback(unsigned enc_idx, int value, int delta)
             return; // FM parameter or operator/stage selector
         if (syxEncoderTurn(&encMap[enc_idx], newDelta))
             return; // .syx page
+        if (vbEncoderTurn(&encMap[enc_idx], newDelta))
+            return; // Voice browser
         switch (encMap[enc_idx].Parameter)
         {
         case kbdOct:
@@ -1423,7 +1452,8 @@ FLASHMEM void encoderButtonCallback(unsigned enc_idx, int buttonState)
     if (encMap[enc_idx].Push && encMap[enc_idx].active)
     {
         if (fmEncoderPush(&encMap[enc_idx]) || // FM parameter: back to the init voice value
-            syxEncoderPush(&encMap[enc_idx]))  // .syx page: import, export, open
+            syxEncoderPush(&encMap[enc_idx]) || // .syx page: import, export, open
+            vbEncoderPush(&encMap[enc_idx]))    // Voice browser: open, keep, save
         {
             state = encMap[enc_idx].PushAction;
             setEncodersState(state);
@@ -2419,26 +2449,7 @@ FLASHMEM void buttonCallback(unsigned button_idx, int buttonStatus)
             // SAVE
             else if (cardStatus && state != State::PATCHSAVING && state != State::CHOOSECHARPATCH && state != State::DELETECHARPATCH)
             {
-                singleLED(ledColour::RED, 7);
-                loadBankNames(); // If in the middle of bank renaming and cancelling
-                tempBankIndex = currentBankIndex;
-                if (patches.size() < PATCHES_LIMIT)
-                {
-                    // Prompt for patch name
-                    currentPatchName = currentPatch.PatchName;
-                    currentPatchIndex++;
-                    state = State::PATCHSAVING;
-                    if (patches[0].patchUID != 0 && patches.back().patchUID != 0)
-                        patches.push_back(PatchUIDAndName{0, EMPTYNAME});
-                    currentPatchIndex = patches.size() - 1;
-                    if (DEBUG)
-                        Serial.printf(F("currentPatchIndex: %i\n"), currentPatchIndex);
-                }
-                else
-                {
-                    if (DEBUG)
-                        Serial.println(F("Over patch limit on this bank"));
-                }
+                startPatchSaving();
             }
             else if (state == State::PATCHSAVING)
             {
@@ -2789,6 +2800,7 @@ void loop()
     // oscillators of voices that have stopped sounding
     groupvec[activeGroupIndex]->serviceVoices();
     checkPendingPatchRecall();
+    fmServiceVoiceBrowser(); // Voice chosen on the voice browser
     serviceFirmwareUpdate();
     static uint32_t overloadsReported = 0;
     if (global.cpuGuard.overloads != overloadsReported)

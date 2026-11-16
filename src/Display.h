@@ -1737,6 +1737,9 @@ void displayThread()
       case State::SYXPAGE:
         renderSyxPage();
         break;
+      case State::VOICEBROWSER:
+        renderVoiceBrowserPage();
+        break;
       case State::FXPAGE1:
         renderFXPage(1);
         break;

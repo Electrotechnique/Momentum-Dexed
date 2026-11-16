@@ -385,7 +385,7 @@ FLASHMEM void setEncodersState(State s)
         configurePatchselect(&encMap[ENC_BR], State::PATCHLIST);
         break;
     case State::PATCHLIST:
-        configureOff(&encMap[ENC_TL]);
+        configureVoiceBrowserOpen(&encMap[ENC_TL]);
         configureCancel(&encMap[ENC_TR]);
         configureCCbankselectLSB(&encMap[ENC_BL]);
         configurePatchselect(&encMap[ENC_BR]);

@@ -78,6 +78,21 @@ push **DX7 .syx**:
 - **Export Bank** (top left): push to save the bank as 32 voice `.syx` files named after the bank
   (a bank of more than 32 patches makes several files; the last one is filled with init voices)
 
+## Voice browser
+
+The voices in the `SYX` folder can be played without importing them. On the Recall page, push
+**DX7 Voices** (top left):
+
+- **File** (bottom left): the .syx file
+- **Voice** (bottom right): the voice. It plays once the encoder stops, so play the keyboard
+  while turning. Push to keep the voice and go back to the main page (unsaved)
+- **Save** (top left), or the Save button: save the voice as a patch, choosing the bank, slot
+  and name as usual
+- **Cancel** (top right): back to the patch that was playing
+
+The voices play through the effects of the patch that was playing when the browser opened.
+The controllers, tone filter and envelope macros are the defaults.
+
 DX7 SysEx sent over USB MIDI (the USB-C port or the USB host port):
 
 - single voice dump: becomes the current voice (save it to keep it)

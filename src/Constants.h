@@ -200,6 +200,7 @@ typedef enum State
   ENVPAGE1,              // Envelope macros: attack, decay, decay 2, release of all operators
   TONEPAGE1,             // Output filter and engine
   SYXPAGE,               // DX7 .syx files on the SD card: import and export
+  VOICEBROWSER,          // DX7 voices from the .syx files, played as they're chosen (from Recall)
   FXPAGE1,               // FX parameters
   FXPAGE2,               // FX parameters
   MIDIPAGE,              // MIDI parameters

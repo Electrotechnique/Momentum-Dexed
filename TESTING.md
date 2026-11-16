@@ -38,6 +38,18 @@ the Serial Monitor open: it prints CPU, audio memory, display stack and Dexed fi
 - [ ] Export a bank, then import the exported file into an empty bank: same sounds
 - [ ] Open an exported file in the Dexed plugin: same voices and names
 
+## 4c. Voice browser (Recall > DX7 Voices)
+- [ ] Recall page shows DX7 Voices top left; pushing it lists the .syx files and plays voice 1
+- [ ] Turning Voice plays each voice (names as in Dexed); fast turns don't freeze or click badly
+- [ ] Turning File reads the next file; a single voice file shows 1 voice; a non-DX7 file says so
+- [ ] Effects of the previous patch stay on while browsing
+- [ ] Cancel: the previous patch comes back
+- [ ] Voice push: back to the main page with the voice, its name shown
+- [ ] Save (TL) and the Save button: naming page with the voice name; the saved patch recalls the same
+- [ ] Save into a full bank: "The bank is full", still on the browser
+- [ ] No SYX folder / no card: message, no crash
+- [ ] Import on the .syx page still works (it shares the file reader)
+
 ## 5. Arp, sequencer, effects
 - [ ] Arpeggiator and sequencer play the FM voice, start/stop as before
 - [ ] Ensemble and reverb pages work

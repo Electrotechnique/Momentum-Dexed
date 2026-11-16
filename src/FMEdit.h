@@ -267,6 +267,10 @@ FLASHMEM void fmAssignStrings()
     ParameterStrMap[syxPage] = "DX7 .syx";
     ParameterStrMap[syxImport] = "Import File";
     ParameterStrMap[syxExport] = "Export Bank";
+    ParameterStrMap[vbOpen] = "DX7 Voices";
+    ParameterStrMap[vbFile] = "File";
+    ParameterStrMap[vbVoice] = "Voice";
+    ParameterStrMap[vbSave] = "Save";
 }
 
 FLASHMEM void configureFM(EncoderMappingStruct *enc, uint8_t id, State st)
@@ -353,6 +357,9 @@ FLASHMEM bool setFMEncodersState(State s)
     {
     case State::SYXPAGE:
         configureSyxPage();
+        return true;
+    case State::VOICEBROWSER:
+        configureVoiceBrowserPage();
         return true;
     case State::OPPAGE1:
         configureFMSelect(&encMap[ENC_TL], fmOpSelect, s);

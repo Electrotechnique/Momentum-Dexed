@@ -13,9 +13,6 @@
 #ifndef MOMENTUM_FM_SYSEX_H
 #define MOMENTUM_FM_SYSEX_H
 
-#define FM_SYSEX_VOICE_LEN 163
-#define FM_SYSEX_BANK_LEN 4104
-
 DMAMEM uint8_t fmSysexBuf[FM_SYSEX_BANK_LEN]; // RAM2: only needed while a dump arrives
 volatile uint16_t fmSysexLen = 0;
 volatile bool fmSysexReady = false; // A complete message is waiting for fmServiceSysex()
@@ -46,22 +43,6 @@ void fmSysexHandler(const uint8_t *data, uint16_t length, bool complete)
 FLASHMEM bool fmSysexChecksumOk(const uint8_t *data, uint16_t len, uint8_t checksum)
 {
     return fmChecksum(data, len) == checksum;
-}
-
-// The 10 character voice name, trailing spaces removed
-FLASHMEM void fmVoiceName(const uint8_t *voice, char *name, size_t size)
-{
-    uint8_t n = 0;
-    for (uint8_t i = 0; i < 10 && n + 1 < size; i++)
-    {
-        char c = voice[145 + i];
-        name[n++] = (c >= 32 && c < 127) ? c : ' ';
-    }
-    while (n > 0 && name[n - 1] == ' ')
-        n--;
-    name[n] = 0;
-    if (n == 0)
-        strlcpy(name, "FM Voice", size);
 }
 
 // Makes voice (155 bytes, unpacked) the current patch, with the default effects and controls
@@ -124,46 +105,22 @@ FLASHMEM void syxImportFile()
 {
     if (!cardStatus || syxFileIndex >= syxFiles.size())
         return;
-    String path = String(SYX_FOLDER) + "/" + syxFiles[syxFileIndex];
-    File file = SD.open(path.c_str());
-    if (!file)
+    const uint8_t *first = nullptr;
+    bool packed = false;
+    bool checksumOk = true;
+    int8_t voices = syxReadFile(syxFiles[syxFileIndex], syxFileBuf, &first, &packed, &checksumOk);
+    if (voices < 0)
     {
         syxStatus = F("Can't open the file");
         return;
     }
-    uint32_t size = file.size();
-    uint32_t len = size <= sizeof(syxFileBuf) ? file.read(syxFileBuf, size) : 0;
-    file.close();
-    const uint8_t *b = syxFileBuf;
-    uint8_t bank = tempBankIndex;
-    const uint8_t *packed = nullptr;
-    bool checksumOk = true;
-    uint8_t added = 0;
-    uint8_t voices = 0;
-
-    if (len == FM_SYSEX_BANK_LEN && b[0] == 0xF0 && b[1] == 0x43 && b[3] == 0x09)
-    {
-        packed = &b[6];
-        checksumOk = fmChecksum(packed, 4096) == b[4102];
-    }
-    else if (len == 4096) // Bank data without the SysEx header
-        packed = b;
-    if (packed)
-    {
-        voices = 32;
-        added = fmAddPackedVoicesToBank(bank, packed, 32);
-    }
-    else if (len == FM_SYSEX_VOICE_LEN && b[0] == 0xF0 && b[1] == 0x43 && b[3] == 0x00)
-    {
-        voices = 1;
-        checksumOk = fmChecksum(&b[6], 155) == b[161];
-        added = fmAddVoiceToBank(bank, &b[6]) ? 1 : 0;
-    }
-    else
+    if (voices == 0)
     {
         syxStatus = F("Not a DX7 voice or bank");
         return;
     }
+    uint8_t bank = tempBankIndex;
+    uint8_t added = packed ? fmAddPackedVoicesToBank(bank, first, voices) : (fmAddVoiceToBank(bank, first) ? 1 : 0);
     {
         LockGuard lock(displayLock);
         loadPatchNamesFromBank(bank);

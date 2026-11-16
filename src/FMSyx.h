@@ -15,6 +15,8 @@
 #define SYX_FOLDER "/SYX"
 #define SYX_MAX_FILES 100
 #define FM_PACKED_VOICE 128 // One voice of a 32 voice bank
+#define FM_SYSEX_VOICE_LEN 163
+#define FM_SYSEX_BANK_LEN 4104
 
 std::vector<String> syxFiles; // Names of the .syx files in SYX_FOLDER, sorted
 uint8_t syxFileIndex = 0;
@@ -117,6 +119,65 @@ FLASHMEM bool syxIsSyxName(const char *name)
     return n > 4 && name[0] != '.' && strcasecmp(&name[n - 4], ".syx") == 0;
 }
 
+// A 10 character DX7 voice name, trailing spaces removed ("FM Voice" if blank)
+FLASHMEM void fmNameStr(const uint8_t *chars, char *name, size_t size)
+{
+    uint8_t n = 0;
+    for (uint8_t i = 0; i < 10 && n + 1 < size; i++)
+    {
+        char c = chars[i];
+        name[n++] = (c >= 32 && c < 127) ? c : ' ';
+    }
+    while (n > 0 && name[n - 1] == ' ')
+        n--;
+    name[n] = 0;
+    if (n == 0)
+        strlcpy(name, "FM Voice", size);
+}
+
+// The name of a 155 byte voice
+FLASHMEM void fmVoiceName(const uint8_t *voice, char *name, size_t size)
+{
+    fmNameStr(&voice[145], name, size);
+}
+
+// Reads SYX_FOLDER/name into buf (FM_SYSEX_BANK_LEN bytes) and finds the voices in it.
+// Returns the number of voices: 32 (a bank, *packed true: 128 byte voices) or 1 (a single
+// 155 byte voice), 0 if it isn't a DX7 bank or voice, -1 if the file can't be opened.
+// *voices points to the first voice in buf.
+FLASHMEM int8_t syxReadFile(const String &name, uint8_t *buf, const uint8_t **voices, bool *packed, bool *checksumOk)
+{
+    String path = String(SYX_FOLDER) + "/" + name;
+    File file = SD.open(path.c_str());
+    if (!file)
+        return -1;
+    uint32_t size = file.size();
+    uint32_t len = size <= FM_SYSEX_BANK_LEN ? file.read(buf, size) : 0;
+    file.close();
+    *checksumOk = true;
+    if (len == FM_SYSEX_BANK_LEN && buf[0] == 0xF0 && buf[1] == 0x43 && buf[3] == 0x09)
+    {
+        *voices = &buf[6];
+        *packed = true;
+        *checksumOk = fmChecksum(&buf[6], 4096) == buf[4102];
+        return 32;
+    }
+    if (len == 4096) // Bank data without the SysEx header
+    {
+        *voices = buf;
+        *packed = true;
+        return 32;
+    }
+    if (len == FM_SYSEX_VOICE_LEN && buf[0] == 0xF0 && buf[1] == 0x43 && buf[3] == 0x00)
+    {
+        *voices = &buf[6];
+        *packed = false;
+        *checksumOk = fmChecksum(&buf[6], 155) == buf[161];
+        return 1;
+    }
+    return 0;
+}
+
 // Lists the .syx files in SYX_FOLDER
 FLASHMEM void syxScanFiles()
 {
@@ -215,6 +276,88 @@ FLASHMEM bool syxEncoderPush(EncoderMappingStruct *enc)
     default:
         return false;
     }
+}
+
+// ---- Voice browser (Recall page > DX7 Voices) ----
+// Plays the voices of the .syx files in SYX_FOLDER as they're chosen, without importing them.
+// Turning only selects; the file is read and the voice played from loop() once the encoder has
+// been still for VB_PLAY_DELAY_MS (FMVoiceBrowser.h), as patch recall does.
+
+#define VB_PLAY_DELAY_MS 100
+
+DMAMEM uint8_t vbBuf[FM_SYSEX_BANK_LEN]; // The file being browsed (RAM2)
+int16_t vbLoadedFile = -1;               // syxFiles index of the file in vbBuf, -1 none
+uint8_t vbCount = 0;                     // Voices in it: 32, 1, or 0 (not a DX7 file)
+bool vbPacked = false;                   // Bank voices (128 bytes) or one 155 byte voice
+const uint8_t *vbVoices = nullptr;       // First voice in vbBuf
+uint8_t vbVoiceIndex = 0;                // Selected voice
+String vbStatus = "";                    // Why there are no voices, shown in place of the list
+volatile bool vbPending = false;         // A voice to play (and maybe a file to read) from loop()
+elapsedMillis vbTimer;
+PatchStruct vbBasePatch; // The patch playing when the browser opened: its effects are kept
+
+// Name of voice v of the browsed file
+FLASHMEM void vbVoiceName(uint8_t v, char *name, size_t size)
+{
+    if (v >= vbCount || !vbVoices)
+        name[0] = 0;
+    else
+        fmNameStr(vbPacked ? &vbVoices[v * FM_PACKED_VOICE + 118] : &vbVoices[145], name, size);
+}
+
+// Recall page: DX7 Voices opens the browser
+FLASHMEM void configureVoiceBrowserOpen(EncoderMappingStruct *enc)
+{
+    enc->active = cardStatus;
+    enc->Parameter = vbOpen;
+    enc->ShowValue = false;
+    enc->Value = 0;
+    enc->Range = 0;
+    enc->ValueStr = "";
+    enc->ParameterStr = ParameterStrMap[vbOpen];
+    enc->Push = true;
+    enc->PushAction = State::VOICEBROWSER;
+}
+
+FLASHMEM void configureVoiceBrowserPage()
+{
+    encMap[ENC_TL].active = vbCount > 0;
+    encMap[ENC_TL].Parameter = vbSave;
+    encMap[ENC_TL].ShowValue = false;
+    encMap[ENC_TL].Value = 0;
+    encMap[ENC_TL].Range = 0;
+    encMap[ENC_TL].ParameterStr = ParameterStrMap[vbSave];
+    encMap[ENC_TL].Push = true;
+    encMap[ENC_TL].PushAction = State::PATCHSAVING;
+
+    encMap[ENC_TR].active = true; // Cancel: back to the patch that was playing
+    encMap[ENC_TR].Parameter = cancel;
+    encMap[ENC_TR].ShowValue = false;
+    encMap[ENC_TR].Value = 0;
+    encMap[ENC_TR].Range = 0;
+    encMap[ENC_TR].ValueStr = "";
+    encMap[ENC_TR].ParameterStr = ParameterStrMap[cancel];
+    encMap[ENC_TR].Push = true;
+    encMap[ENC_TR].PushAction = State::MAIN;
+
+    encMap[ENC_BL].active = syxFiles.size() > 0;
+    encMap[ENC_BL].Parameter = vbFile;
+    encMap[ENC_BL].ShowValue = false;
+    encMap[ENC_BL].Value = syxFileIndex;
+    encMap[ENC_BL].Range = syxFiles.size() > 0 ? syxFiles.size() - 1 : 0;
+    encMap[ENC_BL].Counter = 0;
+    encMap[ENC_BL].ParameterStr = ParameterStrMap[vbFile];
+    encMap[ENC_BL].Push = false;
+
+    encMap[ENC_BR].active = vbCount > 0;
+    encMap[ENC_BR].Parameter = vbVoice;
+    encMap[ENC_BR].ShowValue = false;
+    encMap[ENC_BR].Value = vbVoiceIndex;
+    encMap[ENC_BR].Range = vbCount > 0 ? vbCount - 1 : 0;
+    encMap[ENC_BR].Counter = 0;
+    encMap[ENC_BR].ParameterStr = ParameterStrMap[vbVoice];
+    encMap[ENC_BR].Push = true; // Keep the voice (unsaved, as a SysEx voice dump)
+    encMap[ENC_BR].PushAction = State::MAIN;
 }
 
 #endif

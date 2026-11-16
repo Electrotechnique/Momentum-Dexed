@@ -392,6 +392,80 @@ FLASHMEM void renderSyxPage()
   renderCorners();
 }
 
+// Voice browser: .syx files on the left (as the banks on the Recall page), their voices on the right
+FLASHMEM void renderVoiceBrowserPage()
+{
+  tft.fillScreen(ILI9341_BLACK);
+  tft.setFont(Arial_16);
+  tft.setTextColor(ILI9341_YELLOW);
+  tft.setTextDatum(TC_DATUM);
+  tft.drawString(F("DX7 Voices"), 160, 26);
+  tft.drawFastHLine(10, 48, tft.width() - 20, ILI9341_RED);
+  tft.setTextDatum(TL_DATUM);
+  const uint8_t rows = 8;
+  if (!cardStatus || syxFiles.size() == 0)
+  {
+    tft.setFont(Arial_12);
+    tft.setTextColor(cardStatus ? ILI9341_DARKYELLOW : ILI9341_RED);
+    tft.drawString(cardStatus ? F("No .syx files in") : F("No SD card"), 110, 57);
+    if (cardStatus)
+      tft.drawString(F("the SYX folder"), 110, 77);
+    renderCorners();
+    return;
+  }
+
+  // Files, without .syx, scrolled to keep the selected one in view
+  tft.setFont(Arial_12_Bold);
+  uint8_t first = syxFileIndex >= rows ? syxFileIndex - rows + 1 : 0;
+  for (uint8_t r = 0; r < rows && first + r < syxFiles.size(); r++)
+  {
+    uint8_t i = first + r;
+    String name = syxFiles[i].substring(0, syxFiles[i].length() - 4);
+    if (name.length() > 9)
+      name = name.substring(0, 8) + "..";
+    int16_t y = 57 + 20 * r;
+    if (i == syxFileIndex)
+    {
+      tft.getTextBounds(name, 2, y, &xt, &yt, &wt, &ht);
+      tft.fillRect(0, yt - 1, wt + 2, ht + 2, ILI9341_ORANGE);
+      tft.setTextColor(ILI9341_BLACK);
+    }
+    else
+      tft.setTextColor(ILI9341_RED);
+    tft.drawString(name, 2, y);
+  }
+
+  // Voices, a page of 8 at a time, as the patches on the Recall page
+  if (vbCount == 0)
+  {
+    tft.setFont(Arial_12);
+    tft.setTextColor(ILI9341_DARKYELLOW);
+    tft.drawString(vbStatus, 110, 57);
+  }
+  else
+  {
+    char name[12];
+    uint8_t page = vbVoiceIndex / rows * rows;
+    for (uint8_t r = 0; r < rows && page + r < vbCount; r++)
+    {
+      uint8_t v = page + r;
+      vbVoiceName(v, name, sizeof(name));
+      String voiceStr = String(v + 1) + " " + name;
+      int16_t y = 57 + 20 * r;
+      if (v == vbVoiceIndex)
+      {
+        tft.getTextBounds(voiceStr, 110, y, &xt, &yt, &wt, &ht);
+        tft.fillRect(xt - 2, yt - 1, wt + 4, ht + 2, ILI9341_YELLOW);
+        tft.setTextColor(ILI9341_BLACK);
+      }
+      else
+        tft.setTextColor(ILI9341_DARKYELLOW);
+      tft.drawString(voiceStr, 110, y);
+    }
+  }
+  renderCorners();
+}
+
 // Main page: algorithm and operator levels, top right
 FLASHMEM void renderMainPageFM()
 {
