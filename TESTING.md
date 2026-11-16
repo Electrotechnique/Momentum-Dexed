@@ -28,6 +28,9 @@ the Serial Monitor open: it prints CPU, audio memory, display stack and Dexed fi
 ## 4. SysEx (USB)
 - [ ] Single voice dump (e.g. from the Dexed plugin): becomes the current voice, name shown
 - [ ] 32 voice bank dump: 32 patches added to the current bank, names correct
+- [ ] While it saves: "Saving received bank", "n of 32" and a bar filling; then "32 voices added"
+- [ ] A bank grown past 54 patches (two bank dumps into one bank): all patches listed, in order,
+  after recalling another bank and coming back, and after a restart
 - [ ] Editing in the Dexed plugin changes the sound live
 - [ ] .syx page, top left turned: Export Bank, Send Voice, Send Bank, Send 33-64 ... shown in turn
 - [ ] Send Voice: Dexed gets the voice playing now (with unsaved edits), named after the patch
@@ -39,7 +42,8 @@ the Serial Monitor open: it prints CPU, audio memory, display stack and Dexed fi
 
 ## 4b. .syx files (SD card, SYX folder)
 - [ ] Edit Banks > DX7 .syx lists the files; Bank and Import File scroll
-- [ ] Import a 32 voice bank: "32 of 32 added", names correct, sounds right (compare in Dexed)
+- [ ] Import a 32 voice bank: "32 of 32 added", names correct, sounds right (compare in Dexed);
+  "Importing .syx bank" with a progress bar while it saves
 - [ ] Import a single voice file
 - [ ] Import into a nearly full bank: "n of 32 added: bank full"
 - [ ] Export a bank, then import the exported file into an empty bank: same sounds
@@ -68,3 +72,7 @@ the Serial Monitor open: it prints CPU, audio memory, display stack and Dexed fi
 - [ ] Changing pages quickly while playing: no clicks, no freeze
 
 Report the CPUMonitor lines and anything that doesn't work.
+
+Screenshots: `python tools/screenshot.py COM7 screen.png` saves what's on the display (needs
+pyserial and Pillow; close the Serial Monitor first, with the bin icon in VS Code: closing the
+panel leaves it running and holding the port).

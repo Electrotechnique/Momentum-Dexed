@@ -2739,6 +2739,40 @@ FLASHMEM void CPUMonitor()
     AudioProcessorUsageMaxReset();
 }
 
+// Screenshot for development: send 'S' over USB serial and the frame buffer comes back as
+// "SCREEN320x240\n" and 320 x 240 RGB565 pixels, little endian (tools/screenshot.py saves a PNG)
+FLASHMEM void serviceScreenshot()
+{
+    if (!Serial.available())
+        return;
+    if (Serial.read() != 'S')
+        return;
+    uint16_t *fb = tft.getFrameBuffer();
+    if (!fb)
+        return;
+    LockGuard lock(displayLock); // Not while a frame is being drawn
+    Serial.print("SCREEN320x240\n");
+    // In pieces, each once there's room for it: Teensy drops what doesn't fit when the PC is slow
+    const uint8_t *p = (const uint8_t *)fb;
+    uint32_t left = 320 * 240 * 2;
+    elapsedMillis waited;
+    while (left > 0 && waited < 3000)
+    {
+        uint32_t n = min(left, (uint32_t)Serial.availableForWrite());
+        if (n == 0)
+        {
+            yield();
+            continue;
+        }
+        n = min(n, (uint32_t)512);
+        Serial.write(p, n);
+        p += n;
+        left -= n;
+        waited = 0;
+    }
+    Serial.flush();
+}
+
 // Prints the details of the last crash (if any) once the Serial Monitor is connected
 FLASHMEM void crashReportCheck()
 {
@@ -2781,6 +2815,7 @@ void loop()
                 MIDIClkSignal = false;
         }
         crashReportCheck();
+        serviceScreenshot();
         eepromFlushDeferred(); // Settings that were changing, once they've been still
         serviceLEDFlash();
         if (reinitRestorePending && reinitRestoreTimer >= REINIT_STATE_MS)
