@@ -28,6 +28,7 @@
 #include "Momentum20pt7b.h"
 #include "Yeysk12pt7b.h"
 #include "Yeysk16pt7b.h"
+#include "DexedLogo.h"
 #include <ili9341_t3n_font_Arial.h>
 #include <ili9341_t3n_font_ArialBold.h>
 
@@ -190,11 +191,18 @@ FLASHMEM void renderBootUpPage()
   tft.setCursor(90, 82);
   tft.setFont(&Yeysk16pt7b);
   tft.setTextColor(ILI9341_YELLOW);
+  // The Dexed logo and the version are centred under MOMENTUM
+  int16_t mx, my;
+  uint16_t mw, mh;
+  tft.getTextBounds(F("MOMENTUM"), 90, 82, &mx, &my, &mw, &mh);
+  int16_t centre = mx + mw / 2;
   tft.println(F("MOMENTUM"));
+  tft.writeRect4BPP(centre - DEXED_LOGO_W / 2, 108, DEXED_LOGO_W, DEXED_LOGO_H, DEXED_LOGO_PIXELS, DEXED_LOGO_PALETTE);
   tft.setTextColor(ILI9341_ORANGE);
   tft.setFont(Arial_16);
-  tft.setCursor(140, 120);
-  tft.println(VERSION);
+  tft.setTextDatum(TC_DATUM);
+  tft.drawString(VERSION, centre, 182);
+  tft.setTextDatum(TL_DATUM);
 }
 
 FLASHMEM void renderMIDI()
