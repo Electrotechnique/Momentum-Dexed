@@ -1,7 +1,7 @@
 # Hardware test checklist
 
-For the first runs on a Momentum. Uncomment `CPUMonitor();` in `loop()` (main.cpp) and keep
-the Serial Monitor open: it prints CPU, audio memory, display stack and Dexed figures once a second.
+For the first runs on a Momentum. `CPUMonitor()` in `loop()` (main.cpp) prints CPU, audio
+memory, display stack and Dexed figures to USB serial once a second: keep the Serial Monitor open.
 
 ## 1. Basics
 - [ ] Boots to the main page; patch name, bank, ALG and the six operator bars show (top right)
@@ -10,6 +10,16 @@ the Serial Monitor open: it prints CPU, audio memory, display stack and Dexed fi
 - [ ] Volume buttons change the level; no clipping at full volume with several notes
 
 ## 1b. SD card
+
+Setting up a card (as in the README):
+
+1. Get the repository's files: on GitHub, **Code > Download ZIP**, and unzip it.
+2. Format the micro SD card as FAT32 (Windows does for cards of up to 32 GB).
+3. Copy everything inside the `SDCard` folder to the root of the card: `Bank1`, `Banknames`, `SYX`.
+4. Put the card in Momentum and switch on.
+
+For the blank card test, skip step 3.
+
 - [ ] Blank card: Bank1-8, Sequences, Performances and SYX folders made; init voice in Bank1;
   the banks are named Bank 1 to Bank 8
 - [ ] The repository's SDCard folder copied: Bank 1 lists 32 patches in
@@ -76,8 +86,11 @@ the Serial Monitor open: it prints CPU, audio memory, display stack and Dexed fi
 - [ ] Performances recall patch and encoder assignments
 
 ## 6. Load
-- [ ] 16 notes held, ensemble and reverb on: CPU, `xrun 0`, no clicks
-- [ ] Display stack (CPUMonitor) stays well below 16384 on every page
+- [x] 16 notes held, ensemble and reverb on: CPU, `xrun 0`, no clicks. 16 notes at a high
+  tempo with the effects fully on: `CPU 38.1/39.1%  MEM 2/7  Display stack 776/8192 |  dexed
+  22.6/23.5  mix 0.1/0.1  ensemble 6.2/6.2  reverb 9.0/9.2  out 0.2/0.2 notes 16 xrun 0 render
+  max 341us`
+- [ ] Display stack (CPUMonitor) stays well below 8192 on every page
 - [ ] Changing pages quickly while playing: no clicks, no freeze
 
 Report the CPUMonitor lines and anything that doesn't work.

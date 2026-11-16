@@ -7,9 +7,9 @@ Momentum with a six operator FM engine in place of the subtractive one. The engi
 It's the same hardware and the same interface: patches, banks, performances, the arpeggiator,
 the sequencer, the ensemble and reverb, MIDI and settings all work as on Momentum.
 
-**Status: in testing.** It runs on a Momentum (Teensy MicroMod): the pages, patches, the voice
-browser and the transfers to and from Dexed work. What's still to be checked on the hardware is
-in [TESTING.md](TESTING.md).
+**Version 1.00.** It runs on a Momentum (Teensy MicroMod): the pages, patches, the voice browser
+and the transfers to and from Dexed work, and 16 notes with the effects on use under 40% CPU.
+What's still to be checked on the hardware is in [TESTING.md](TESTING.md).
 
 ## Licence
 
@@ -166,8 +166,8 @@ The first two need Python with pyserial and Pillow; make_bank.py needs only Pyth
 
 ## Not done yet
 
-- Load test on hardware: 16 notes with the reverb on (measured so far: 16 notes with the
-  reverb off, 21% CPU, no audio dropouts), output level (volume scaling)
+- Output level on hardware (volume scaling). The load test is done: 16 notes at a high tempo
+  with the ensemble and reverb fully on use 38-39% CPU, with no audio dropouts
 - SysEx on the DIN MIDI input (needs a larger SysEx buffer for the MIDI library)
 - MIDI clock sync of the LFO (the DX7 LFO has none)
 - Panel legends for the new area names (Op, Algo, LFO, Ctrl, Tone)
