@@ -30,6 +30,19 @@ Open this repository in PlatformIO, or from its root:
 pio run
 ```
 
+## SD card
+
+Format the card as FAT32 and copy everything in this repository's `SDCard` folder to its root:
+
+- `Bank1`: 32 starter patches, strings and brass
+- `Banknames`: the names of the 8 banks
+- `SYX`: DX7 voice banks, from the [Dexed](https://github.com/asb2m10/dexed) project, to play
+  with the voice browser or import. Add your own `.syx` banks here
+
+A blank card works too: Momentum makes the bank, Sequences, Performances and SYX folders when
+it starts, with the init voice in Bank1. `tools/make_bank.py` makes a bank folder from voices
+in `.syx` files, as the starter bank was made.
+
 ## Pages
 
 The buttons keep their positions. Press for the next page of an area, hold for the same
@@ -140,7 +153,10 @@ Dexed on the computer) and the USB host port.
 - `tools/png_to_4bpp.py`: makes a C header from a PNG for the display, as the Dexed logo on
   the boot page (`src/DexedLogo.h`)
 
-Both need Python with pyserial and Pillow.
+- `tools/make_bank.py`: makes a bank folder (patch files and their index) from voices in
+  `.syx` banks
+
+The first two need Python with pyserial and Pillow; make_bank.py needs only Python.
 
 ## Not done yet
 
