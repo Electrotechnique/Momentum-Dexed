@@ -466,6 +466,25 @@ FLASHMEM void renderVoiceBrowserPage()
   renderCorners();
 }
 
+// A long job in progress (fmProgress), over whatever was on the screen
+FLASHMEM void renderProgressOverlay()
+{
+  tft.fillRect(40, 60, 240, 110, ILI9341_NAVY);
+  tft.drawRect(40, 60, 240, 110, ILI9341_BLUE);
+  tft.setTextDatum(TC_DATUM);
+  tft.setFont(Arial_14);
+  tft.setTextColor(ILI9341_YELLOW);
+  tft.drawString(fmProgress.title, 160, 75);
+  tft.setFont(Arial_12);
+  tft.setTextColor(ILI9341_WHITE);
+  tft.drawString(String(fmProgress.done) + F(" of ") + String(fmProgress.total), 160, 105);
+  const int16_t barX = 60, barY = 135, barW = 200, barH = 14;
+  tft.drawRect(barX, barY, barW, barH, ILI9341_WHITE);
+  if (fmProgress.total > 0)
+    tft.fillRect(barX + 2, barY + 2, (barW - 4) * fmProgress.done / fmProgress.total, barH - 4, ILI9341_GREEN);
+  tft.setTextDatum(TL_DATUM);
+}
+
 // Main page: algorithm and operator levels, top right
 FLASHMEM void renderMainPageFM()
 {

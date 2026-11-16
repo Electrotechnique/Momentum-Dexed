@@ -56,11 +56,11 @@ FLASHMEM void fmLoadVoiceAsPatch(const uint8_t *voice)
     setCurrentPatchData();
 }
 
-// Adds voice to bank as a new patch at the end. Returns false if the bank is full or saving failed.
-FLASHMEM bool fmAddVoiceToBank(uint8_t bank, const uint8_t *voice)
+// Adds voice to bank as a new patch at the end. patches must hold the bank's patches (savePatch()
+// loads them again after saving). Returns false if the bank is full or saving failed.
+FLASHMEM bool fmAppendVoice(uint8_t bank, const uint8_t *voice)
 {
     LockGuard lock(displayLock); // The display lists the bank's patches
-    loadPatchNamesFromBank(bank);
     if (patches.size() >= PATCHES_LIMIT && patches[patches.size() - 1].patchUID != 0)
         return false; // Bank full
     if (patches[0].patchUID != 0) // Not an empty bank: add a slot at the end
@@ -69,18 +69,37 @@ FLASHMEM bool fmAddVoiceToBank(uint8_t bank, const uint8_t *voice)
     return savePatch(bank, patches.size() - 1);
 }
 
-// Adds count voices (packed, as in a bank) to bank. Returns the number added.
-FLASHMEM uint8_t fmAddPackedVoicesToBank(uint8_t bank, const uint8_t *packed, uint8_t count)
+FLASHMEM void fmLoadBankPatchNames(uint8_t bank)
+{
+    LockGuard lock(displayLock);
+    loadPatchNamesFromBank(bank);
+}
+
+// Adds voice to bank as a new patch at the end. Returns false if the bank is full or saving failed.
+FLASHMEM bool fmAddVoiceToBank(uint8_t bank, const uint8_t *voice)
+{
+    fmLoadBankPatchNames(bank);
+    return fmAppendVoice(bank, voice);
+}
+
+// Adds count voices (packed, as in a bank) to bank, showing progress under title. Returns the
+// number added. The bank's names are read once: each was read twice per voice before, and
+// reading them takes about 1 ms per patch in the bank.
+FLASHMEM uint8_t fmAddPackedVoicesToBank(uint8_t bank, const uint8_t *packed, uint8_t count, const char *title)
 {
     uint8_t voice[FM_PATCH_VOICE_SIZE];
     uint8_t added = 0;
+    fmProgressStart(title, count);
+    fmLoadBankPatchNames(bank);
     for (uint8_t v = 0; v < count; v++)
     {
         fmUnpackVoice(&packed[v * FM_PACKED_VOICE], voice);
-        if (!fmAddVoiceToBank(bank, voice))
+        if (!fmAppendVoice(bank, voice))
             break;
         added++;
+        fmProgressStep(added);
     }
+    fmProgressEnd();
     return added;
 }
 
@@ -91,7 +110,7 @@ FLASHMEM void fmImportBank(const uint8_t *packed)
         showCurrentParameterOverlay(F("DX7 Bank"), F("No SD card"));
         return;
     }
-    uint8_t added = fmAddPackedVoicesToBank(currentBankIndex, packed, 32);
+    uint8_t added = fmAddPackedVoicesToBank(currentBankIndex, packed, 32, "Saving received bank");
     loadPatchNamesFromBank(currentBankIndex);
     showCurrentParameterOverlay(F("DX7 Bank"), String(added) + F(" voices added"));
 }
@@ -120,7 +139,7 @@ FLASHMEM void syxImportFile()
         return;
     }
     uint8_t bank = tempBankIndex;
-    uint8_t added = packed ? fmAddPackedVoicesToBank(bank, first, voices) : (fmAddVoiceToBank(bank, first) ? 1 : 0);
+    uint8_t added = packed ? fmAddPackedVoicesToBank(bank, first, voices, "Importing .syx bank") : (fmAddVoiceToBank(bank, first) ? 1 : 0);
     {
         LockGuard lock(displayLock);
         loadPatchNamesFromBank(bank);

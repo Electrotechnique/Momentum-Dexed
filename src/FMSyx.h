@@ -40,6 +40,36 @@ const char *const SYX_ACTION_NAMES[SYX_ACTIONS] = {"Export Bank", "Send Voice", 
 uint8_t syxAction = SYX_EXPORT_BANK;
 volatile int8_t syxSendRequested = -1; // A SyxAction to send from loop(), -1 none
 
+// Progress of a job that takes seconds (a bank received over USB or imported from a .syx file
+// is saved as 32 patches; a bank exported), drawn over the page by the display thread
+struct FMProgress
+{
+    volatile bool active = false;
+    const char *title = "";
+    volatile uint8_t done = 0;
+    uint8_t total = 0;
+} fmProgress;
+
+FLASHMEM void fmProgressStart(const char *title, uint8_t total)
+{
+    fmProgress.title = title;
+    fmProgress.done = 0;
+    fmProgress.total = total;
+    fmProgress.active = true;
+    threads.yield(); // Let the display show it
+}
+
+FLASHMEM void fmProgressStep(uint8_t done)
+{
+    fmProgress.done = done;
+    threads.yield(); // The job holds the display lock while it saves: let the display draw between
+}
+
+FLASHMEM void fmProgressEnd()
+{
+    fmProgress.active = false;
+}
+
 // Packs a 155 byte voice into the 128 bytes of a DX7 bank voice (VMEM)
 FLASHMEM void fmPackVoice(const uint8_t *v, uint8_t *p)
 {

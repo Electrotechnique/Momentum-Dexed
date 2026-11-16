@@ -656,16 +656,19 @@ FLASHMEM void renderBankList()
 
 FLASHMEM void renderCurrentParameterOverlay()
 {
-  tft.fillRect(40, 30, 230, 150, ILI9341_DARKRED);
-  tft.drawRect(40, 30, 230, 150, ILI9341_RED);
+  // Box and text centred on the screen
+  tft.fillRect(45, 30, 230, 150, ILI9341_DARKRED);
+  tft.drawRect(45, 30, 230, 150, ILI9341_RED);
 
+  tft.setTextDatum(TC_DATUM);
   tft.setFont(Arial_12_Bold);
   tft.setTextColor(ILI9341_YELLOW);
-  tft.drawString(currentParameter, 60, 70);
+  tft.drawString(currentParameter, 160, 70);
 
   tft.setFont(Arial_16);
   tft.setTextColor(ILI9341_WHITE);
-  tft.drawString(currentValue, 60, 120);
+  tft.drawString(currentValue, 160, 120);
+  tft.setTextDatum(TL_DATUM);
   switch (paramType)
   {
   case PULSE:
@@ -1656,7 +1659,11 @@ void displayThread()
     // Render into the frame buffer while holding the lock, so the main loop can't change
     // the Strings, encoder map and lists being drawn. The SPI transfer below runs without it.
     displayLock.lock();
-    if ((millis() - timer) > DISPLAYTIMEOUT)
+    if (fmProgress.active)
+    {
+      renderProgressOverlay(); // Over the last frame: the page may be changing meanwhile
+    }
+    else if ((millis() - timer) > DISPLAYTIMEOUT)
     {
       switch (state)
       {
