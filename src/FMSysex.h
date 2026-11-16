@@ -160,6 +160,109 @@ FLASHMEM String syxExportName(uint8_t bank, uint8_t part, uint8_t parts)
     return path;
 }
 
+// The envelope macros (-50 to +50, + is slower) put into the rates of a voice: they're part of the
+// sound, and a DX7 voice has no place for them
+FLASHMEM void fmApplyMacros(uint8_t *voice, const int8_t *macro)
+{
+    for (uint8_t op = 0; op < 6; op++)
+        for (uint8_t r = 0; r < 4; r++)
+            voice[op * 21 + r] = constrain((int16_t)voice[op * 21 + r] - macro[r], 0, 99);
+}
+
+// The patch name as the voice name, 10 characters
+FLASHMEM void fmSetVoiceName(uint8_t *voice, const char *name)
+{
+    size_t len = strlen(name);
+    for (uint8_t c = 0; c < 10; c++)
+    {
+        char ch = c < len ? name[c] : ' ';
+        voice[145 + c] = (ch >= 32 && ch < 127) ? ch : ' ';
+    }
+}
+
+// The patches of a bank, for building bank dumps. Returns how many (0 for an empty bank).
+FLASHMEM uint8_t fmBankPatches(uint8_t bank, Patches &bankPatches)
+{
+    LockGuard lock(displayLock); // The display lists the bank's patches
+    loadPatchNamesFromBank(bank);
+    bankPatches = patches;
+    return bankPatches[0].patchUID == 0 ? 0 : bankPatches.size();
+}
+
+// A 32 voice bank dump (FM_SYSEX_BANK_LEN bytes in buf) of patches first to first + 31 of the
+// bank, padded with init voices. loadPatch() reads into currentPatch: the caller puts it back.
+FLASHMEM void fmBuildBankDump(uint8_t bank, const Patches &bankPatches, uint8_t count, uint8_t first, uint8_t *buf)
+{
+    uint8_t voice[FM_PATCH_VOICE_SIZE];
+    uint8_t *packed = &buf[6];
+    for (uint8_t v = 0; v < 32; v++)
+    {
+        uint8_t i = first + v;
+        if (i < count && loadPatch(bank, bankPatches[i].patchUID) && currentPatch.VoiceValid)
+        {
+            memcpy(voice, currentPatch.Voice, FM_PATCH_VOICE_SIZE);
+            int8_t macro[4];
+            for (uint8_t r = 0; r < 4; r++)
+                macro[r] = (int8_t)currentPatch.EnvMacro[r] - 50;
+            fmApplyMacros(voice, macro);
+            fmSetVoiceName(voice, currentPatch.PatchName);
+        }
+        else
+            fmInitVoice(voice); // Empty slot, or a patch without an FM voice
+        fmPackVoice(voice, &packed[v * FM_PACKED_VOICE]);
+    }
+    const uint8_t header[6] = {0xF0, 0x43, 0x00, 0x09, 0x20, 0x00};
+    memcpy(buf, header, 6);
+    buf[4102] = fmChecksum(packed, 4096);
+    buf[4103] = 0xF7;
+}
+
+// A single voice dump (FM_SYSEX_VOICE_LEN bytes in buf) of the voice playing now, with any
+// unsaved edits, the envelope macros and the patch name
+FLASHMEM void fmBuildVoiceDump(uint8_t *buf)
+{
+    VoiceGroup *vg = groupvec[activeGroupIndex];
+    uint8_t *voice = &buf[6];
+    vg->getVoiceData(voice);
+    int8_t macro[4];
+    for (uint8_t r = 0; r < 4; r++)
+        macro[r] = vg->getEnvMacro(r);
+    fmApplyMacros(voice, macro);
+    fmSetVoiceName(voice, currentPatch.PatchName);
+    const uint8_t header[6] = {0xF0, 0x43, 0x00, 0x00, 0x01, 0x1B};
+    memcpy(buf, header, 6);
+    buf[161] = fmChecksum(voice, 155);
+    buf[162] = 0xF7;
+}
+
+// To the computer (USB-C port) and to a device on the USB host port
+FLASHMEM void fmSendSysex(const uint8_t *buf, uint32_t len)
+{
+    usbMIDI.sendSysEx(len, buf, true);
+    usbMIDI.send_now();
+    usbHostMIDI.sendSysEx(len, buf, true);
+}
+
+FLASHMEM void fmSendVoice()
+{
+    fmBuildVoiceDump(syxFileBuf);
+    fmSendSysex(syxFileBuf, FM_SYSEX_VOICE_LEN);
+}
+
+// Sends 32 patches of the bank from first as a bank dump. Returns false if the bank has none there.
+FLASHMEM bool fmSendBank(uint8_t bank, uint8_t first)
+{
+    Patches bankPatches;
+    uint8_t count = fmBankPatches(bank, bankPatches);
+    if (first >= count)
+        return false;
+    PatchStruct current = currentPatch;
+    fmBuildBankDump(bank, bankPatches, count, first, syxFileBuf);
+    currentPatch = current;
+    fmSendSysex(syxFileBuf, FM_SYSEX_BANK_LEN);
+    return true;
+}
+
 // Writes the selected bank (tempBankIndex) as 32 voice .syx files, padded with init voices
 FLASHMEM void syxExportBank()
 {
@@ -167,12 +270,7 @@ FLASHMEM void syxExportBank()
         return;
     uint8_t bank = tempBankIndex;
     Patches bankPatches;
-    {
-        LockGuard lock(displayLock);
-        loadPatchNamesFromBank(bank);
-        bankPatches = patches;
-    }
-    uint8_t count = bankPatches[0].patchUID == 0 ? 0 : bankPatches.size();
+    uint8_t count = fmBankPatches(bank, bankPatches);
     if (count == 0)
     {
         syxStatus = F("The bank is empty");
@@ -182,37 +280,11 @@ FLASHMEM void syxExportBank()
         SD.mkdir(SYX_FOLDER);
     PatchStruct current = currentPatch; // loadPatch() reads into currentPatch: put it back after
     uint8_t parts = (count + 31) / 32;
-    uint8_t voice[FM_PATCH_VOICE_SIZE];
     String lastName;
     bool ok = true;
     for (uint8_t part = 0; part < parts && ok; part++)
     {
-        uint8_t *packed = &syxFileBuf[6];
-        for (uint8_t v = 0; v < 32; v++)
-        {
-            uint8_t i = part * 32 + v;
-            if (i < count && loadPatch(bank, bankPatches[i].patchUID) && currentPatch.VoiceValid)
-            {
-                memcpy(voice, currentPatch.Voice, FM_PATCH_VOICE_SIZE);
-                // The envelope macros are part of the sound: put them into the rates
-                for (uint8_t op = 0; op < 6; op++)
-                    for (uint8_t r = 0; r < 4; r++)
-                        voice[op * 21 + r] = constrain((int16_t)voice[op * 21 + r] - ((int16_t)currentPatch.EnvMacro[r] - 50), 0, 99);
-                // Voice name from the patch name, 10 characters
-                for (uint8_t c = 0; c < 10; c++)
-                {
-                    char ch = c < strlen(currentPatch.PatchName) ? currentPatch.PatchName[c] : ' ';
-                    voice[145 + c] = (ch >= 32 && ch < 127) ? ch : ' ';
-                }
-            }
-            else
-                fmInitVoice(voice); // Empty slot, or a patch without an FM voice
-            fmPackVoice(voice, &packed[v * FM_PACKED_VOICE]);
-        }
-        const uint8_t header[6] = {0xF0, 0x43, 0x00, 0x09, 0x20, 0x00};
-        memcpy(syxFileBuf, header, 6);
-        syxFileBuf[4102] = fmChecksum(packed, 4096);
-        syxFileBuf[4103] = 0xF7;
+        fmBuildBankDump(bank, bankPatches, count, part * 32, syxFileBuf);
         String path = syxExportName(bank, part, parts);
         File file = SD.open(path.c_str(), FILE_WRITE);
         ok = file && file.write(syxFileBuf, FM_SYSEX_BANK_LEN) == FM_SYSEX_BANK_LEN;
@@ -246,6 +318,24 @@ FLASHMEM void fmServiceSyxFiles()
         syxExportRequested = false;
         syxExportBank();
     }
+    if (syxSendRequested >= 0)
+    {
+        uint8_t action = syxSendRequested;
+        syxSendRequested = -1;
+        if (action == SYX_SEND_VOICE)
+        {
+            fmSendVoice();
+            syxStatus = String(F("Sent ")) + currentPatch.PatchName;
+        }
+        else
+        {
+            uint8_t first = (action - SYX_SEND_BANK) * 32;
+            if (fmSendBank(tempBankIndex, first))
+                syxStatus = String(F("Sent patches ")) + String(first + 1) + "-" + String(first + 32);
+            else
+                syxStatus = String(F("No patch ")) + String(first + 1) + F(" in the bank");
+        }
+    }
 }
 
 // From loop()
@@ -255,7 +345,18 @@ FLASHMEM void fmServiceSysex()
         return;
     const uint8_t *s = fmSysexBuf;
     uint16_t len = fmSysexLen;
-    if (len >= 7 && s[0] == 0xF0 && s[1] == 0x43 && s[len - 1] == 0xF7)
+    if (len == 5 && s[0] == 0xF0 && s[1] == 0x43 && (s[2] & 0xF0) == 0x20 && s[4] == 0xF7)
+    {
+        // Dump request from an editor or librarian, as a DX7 answers it
+        if (s[3] == 0x00)
+        {
+            fmSendVoice();
+            showCurrentParameterOverlay(F("DX7 SysEx"), F("Voice sent"));
+        }
+        else if (s[3] == 0x09 && fmSendBank(currentBankIndex, 0)) // Patches 1-32 of the current bank
+            showCurrentParameterOverlay(F("DX7 SysEx"), F("Bank sent"));
+    }
+    else if (len >= 7 && s[0] == 0xF0 && s[1] == 0x43 && s[len - 1] == 0xF7)
     {
         if (len == FM_SYSEX_VOICE_LEN && s[3] == 0x00 && fmSysexChecksumOk(&s[6], 155, s[161]))
         {

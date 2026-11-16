@@ -24,6 +24,22 @@ String syxStatus = "";             // Result of the last import/export, shown on
 volatile bool syxImportRequested = false; // Acted on from loop(): SD card writes take a while
 volatile bool syxExportRequested = false;
 
+// The .syx page's top left encoder: turn to choose, push to do it. Sending is over USB MIDI
+// (the USB-C port and the USB host port), so Dexed on a computer can receive the voices.
+enum SyxAction : uint8_t
+{
+    SYX_EXPORT_BANK, // Write the bank as .syx files
+    SYX_SEND_VOICE,  // Send the current voice as a single voice dump
+    SYX_SEND_BANK,   // Send patches 1-32 of the bank as a 32 voice bank dump
+    SYX_SEND_BANK_2, // 33-64
+    SYX_SEND_BANK_3, // 65-96
+    SYX_SEND_BANK_4, // 97-128
+    SYX_ACTIONS
+};
+const char *const SYX_ACTION_NAMES[SYX_ACTIONS] = {"Export Bank", "Send Voice", "Send Bank", "Send 33-64", "Send 65-96", "Send 97-128"};
+uint8_t syxAction = SYX_EXPORT_BANK;
+volatile int8_t syxSendRequested = -1; // A SyxAction to send from loop(), -1 none
+
 // Packs a 155 byte voice into the 128 bytes of a DX7 bank voice (VMEM)
 FLASHMEM void fmPackVoice(const uint8_t *v, uint8_t *p)
 {
@@ -123,7 +139,7 @@ FLASHMEM bool syxIsSyxName(const char *name)
 FLASHMEM void fmNameStr(const uint8_t *chars, char *name, size_t size)
 {
     uint8_t n = 0;
-    for (uint8_t i = 0; i < 10 && n + 1 < size; i++)
+    for (uint8_t i = 0; i < 10 && n + 1u < size; i++)
     {
         char c = chars[i];
         name[n++] = (c >= 32 && c < 127) ? c : ' ';
@@ -209,9 +225,10 @@ FLASHMEM void configureSyxPage()
     encMap[ENC_TL].active = true;
     encMap[ENC_TL].Parameter = syxExport;
     encMap[ENC_TL].ShowValue = false;
-    encMap[ENC_TL].Value = 0;
-    encMap[ENC_TL].Range = 0;
-    encMap[ENC_TL].ParameterStr = ParameterStrMap[syxExport];
+    encMap[ENC_TL].Value = syxAction;
+    encMap[ENC_TL].Range = SYX_ACTIONS - 1;
+    encMap[ENC_TL].Counter = 0;
+    encMap[ENC_TL].ParameterStr = SYX_ACTION_NAMES[syxAction];
     encMap[ENC_TL].Push = true;
     encMap[ENC_TL].PushAction = State::SYXPAGE;
 
@@ -251,6 +268,11 @@ FLASHMEM bool syxEncoderTurn(EncoderMappingStruct *enc, int8_t newDelta)
         return false;
     if (enc->Parameter == syxImport && newDelta != 0)
         syxFileIndex = enc->Value;
+    if (enc->Parameter == syxExport && newDelta != 0)
+    {
+        syxAction = enc->Value;
+        enc->ParameterStr = SYX_ACTION_NAMES[syxAction];
+    }
     return true;
 }
 
@@ -270,8 +292,16 @@ FLASHMEM bool syxEncoderPush(EncoderMappingStruct *enc)
         }
         return true;
     case syxExport:
-        syxStatus = F("Exporting...");
-        syxExportRequested = true;
+        if (syxAction == SYX_EXPORT_BANK)
+        {
+            syxStatus = F("Exporting...");
+            syxExportRequested = true;
+        }
+        else
+        {
+            syxStatus = F("Sending...");
+            syxSendRequested = syxAction;
+        }
         return true;
     default:
         return false;

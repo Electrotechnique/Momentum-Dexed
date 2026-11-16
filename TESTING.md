@@ -29,6 +29,13 @@ the Serial Monitor open: it prints CPU, audio memory, display stack and Dexed fi
 - [ ] Single voice dump (e.g. from the Dexed plugin): becomes the current voice, name shown
 - [ ] 32 voice bank dump: 32 patches added to the current bank, names correct
 - [ ] Editing in the Dexed plugin changes the sound live
+- [ ] .syx page, top left turned: Export Bank, Send Voice, Send Bank, Send 33-64 ... shown in turn
+- [ ] Send Voice: Dexed gets the voice playing now (with unsaved edits), named after the patch
+- [ ] Send Bank: Dexed's cartridge shows the bank's first 32 patches; sounds match Momentum
+- [ ] Send 33-64 on a bank of 32 or fewer patches: "No patch 33 in the bank"
+- [ ] Notes playing during a send: no clicks or hanging notes
+- [x] Dump requests answered (checked with a script: voice 163 bytes and bank 4104 bytes,
+  headers and checksums right)
 
 ## 4b. .syx files (SD card, SYX folder)
 - [ ] Edit Banks > DX7 .syx lists the files; Bank and Import File scroll

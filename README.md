@@ -72,11 +72,20 @@ Patches from the subtractive Momentum load as the init voice, with their name an
 DX7 `.syx` files on the SD card go in a folder called `SYX`. On the Edit Banks page (from Save),
 push **DX7 .syx**:
 
-- **Bank** (bottom left): the bank to import into or export from
+- **Bank** (bottom left): the bank to import into, export or send
 - **Import File** (bottom right): turn to choose a file, push to add its voices to the bank as
   new patches (32 voice banks and single voices)
-- **Export Bank** (top left): push to save the bank as 32 voice `.syx` files named after the bank
-  (a bank of more than 32 patches makes several files; the last one is filled with init voices)
+- Top left: turn to choose, push to do it:
+  - **Export Bank**: save the bank as 32 voice `.syx` files named after the bank (a bank of
+    more than 32 patches makes several files; the last one is filled with init voices)
+  - **Send Voice**: send the voice playing now over USB MIDI as a single voice dump, with
+    any unsaved edits
+  - **Send Bank**, **Send 33-64**, **Send 65-96**, **Send 97-128**: send 32 patches of the
+    bank over USB MIDI as a 32 voice bank dump (filled with init voices after the last patch)
+
+Sent and exported voices have the envelope macros put into the rates and the patch name as
+the voice name. Effects and controller settings stay on Momentum: a DX7 voice has no place
+for them.
 
 ## Voice browser
 
@@ -98,6 +107,10 @@ DX7 SysEx sent over USB MIDI (the USB-C port or the USB host port):
 - single voice dump: becomes the current voice (save it to keep it)
 - 32 voice bank dump: the voices are added to the current bank as new patches
 - voice parameter changes: applied live, so the Dexed plugin can be used as an editor
+- dump requests: Momentum answers as a DX7 does, with the voice playing now or with patches
+  1-32 of the current bank
+
+Sending goes to the USB-C port (to Dexed on the computer) and the USB host port.
 
 ## Not done yet
 
