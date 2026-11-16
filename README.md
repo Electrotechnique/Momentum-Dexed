@@ -7,7 +7,9 @@ Momentum with a six operator FM engine in place of the subtractive one. The engi
 It's the same hardware and the same interface: patches, banks, performances, the arpeggiator,
 the sequencer, the ensemble and reverb, MIDI and settings all work as on Momentum.
 
-**Status: prototype.** It compiles, but it hasn't been run on a Momentum yet.
+**Status: in testing.** It runs on a Momentum (Teensy MicroMod): the pages, patches, the voice
+browser and the transfers to and from Dexed work. What's still to be checked on the hardware is
+in [TESTING.md](TESTING.md).
 
 ## Licence
 
@@ -53,7 +55,11 @@ secondary functions as Momentum (Perfm, Arp, Seq, MIDI, Settings).
 
 On every Op page the top left encoder selects the operator, and the page stays the same, so
 operators can be compared. Envelopes are edited a stage at a time. Pushing an encoder sets
-the parameter to a default. The Engine setting (Modern, Mark I, OPL) isn't saved in patches yet.
+the parameter to a default. The Engine setting (Modern, Mark I, OPL, on the Tone page) is saved
+with the patch; patches saved before it was are Mark I, Synth_Dexed's default.
+
+The voice grid on the main page shows the 16 voices: blue while a key or the sustain pedal
+holds the note, dark blue while it fades out in its release.
 
 ## Envelope macros
 
@@ -66,15 +72,21 @@ have the macros put into the rates. They can also be assigned to the performance
 ## Patches
 
 Patches are saved in the bank folders as on Momentum. A patch holds the DX7 voice (155 bytes,
-as hex) and Momentum's settings: effects, controllers, tone filter, operator on/off.
-Patches from the subtractive Momentum load as the init voice, with their name and effects.
+as hex) and Momentum's settings: effects, controllers, tone filter, engine, operator on/off and
+envelope macros. Patches from the subtractive Momentum load as the init voice, with their name
+and effects.
+
+A DX7 voice from outside (an imported or browsed `.syx` file, or SysEx from Dexed) has no place
+for Momentum's settings: it gets the effects of the patch that was playing, and the defaults for
+the rest (controllers, tone filter, envelope macros, all operators on, the Mark I engine).
 
 DX7 `.syx` files on the SD card go in a folder called `SYX`. On the Edit Banks page (from Save),
 push **DX7 .syx**:
 
 - **Bank** (bottom left): the bank to import into, export or send
 - **Import File** (bottom right): turn to choose a file, push to add its voices to the bank as
-  new patches (32 voice banks and single voices)
+  new patches (32 voice banks and single voices). Saving 32 patches takes a few seconds: a box
+  shows the progress
 - Top left: turn to choose, push to do it:
   - **Export Bank**: save the bank as 32 voice `.syx` files named after the bank (a bank of
     more than 32 patches makes several files; the last one is filled with init voices)
@@ -99,23 +111,41 @@ The voices in the `SYX` folder can be played without importing them. On the Reca
   and name as usual
 - **Cancel** (top right): back to the patch that was playing
 
-The voices play through the effects of the patch that was playing when the browser opened.
-The controllers, tone filter and envelope macros are the defaults.
+The voices play through the effects of the patch that was playing when the browser opened,
+with the defaults for the rest, as imported voices.
 
-DX7 SysEx sent over USB MIDI (the USB-C port or the USB host port):
+## Dexed on a computer
 
-- single voice dump: becomes the current voice (save it to keep it)
-- 32 voice bank dump: the voices are added to the current bank as new patches
+Momentum works with the [Dexed](https://asb2m10.github.io/dexed/) plugin or standalone app as a
+DX7 would, over USB MIDI. In Dexed's PARM panel, set DX7 In and DX7 Out to Momentum. (Windows
+lets only one program open a MIDI port: close any other that has Momentum's.)
+
+DX7 SysEx received over USB MIDI (the USB-C port or the USB host port):
+
+- single voice dump (in Dexed, send the program from the CART window's right-click menu):
+  becomes the current voice, keeping the effects (save it to keep it)
+- 32 voice bank dump (send the cartridge): the voices are added to the current bank as new
+  patches, with a progress box while they are saved
 - voice parameter changes: applied live, so the Dexed plugin can be used as an editor
 - dump requests: Momentum answers as a DX7 does, with the voice playing now or with patches
   1-32 of the current bank
 
-Sending goes to the USB-C port (to Dexed on the computer) and the USB host port.
+Sending (Send Voice and Send Bank on the DX7 .syx page, above) goes to the USB-C port (to
+Dexed on the computer) and the USB host port.
+
+## Tools
+
+- `tools/screenshot.py COM7 screen.png`: saves what's on the display, over USB serial (close
+  the Serial Monitor first)
+- `tools/png_to_4bpp.py`: makes a C header from a PNG for the display, as the Dexed logo on
+  the boot page (`src/DexedLogo.h`)
+
+Both need Python with pyserial and Pillow.
 
 ## Not done yet
 
-- Test on hardware: CPU load with 16 notes plus the effects, output level (volume scaling),
-  display timing
+- Load test on hardware: 16 notes with the reverb on (measured so far: 16 notes with the
+  reverb off, 21% CPU, no audio dropouts), output level (volume scaling)
 - SysEx on the DIN MIDI input (needs a larger SysEx buffer for the MIDI library)
 - MIDI clock sync of the LFO (the DX7 LFO has none)
 - Panel legends for the new area names (Op, Algo, LFO, Ctrl, Tone)

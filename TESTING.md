@@ -17,6 +17,8 @@ the Serial Monitor open: it prints CPU, audio memory, display stack and Dexed fi
 - [ ] LFO, Ctrl, Tone pages: every encoder changes the sound
 - [ ] Envelope page (Amp): Attack/Decay/Decay 2/Release change all operators; drawing follows
 - [ ] Envelope macros saved with the patch; Op 4 still shows the voice's own rates
+- [ ] Engine (Tone page): save a patch as Modern or OPL, recall another, recall it: the engine
+  comes back. A patch saved before this build loads as Mark I
 - [ ] Encoder push resets a parameter; holding the buttons still gives Perfm, Arp, Seq, MIDI, Settings
 
 ## 3. Patches
@@ -26,7 +28,8 @@ the Serial Monitor open: it prints CPU, audio memory, display stack and Dexed fi
 - [ ] Program change from MIDI recalls patches
 
 ## 4. SysEx (USB)
-- [ ] Single voice dump (e.g. from the Dexed plugin): becomes the current voice, name shown
+- [ ] Single voice dump (e.g. from the Dexed plugin): becomes the current voice, name shown;
+  the reverb and ensemble of the patch that was playing stay on
 - [ ] 32 voice bank dump: 32 patches added to the current bank, names correct
 - [ ] While it saves: "Saving received bank", "n of 32" and a bar filling; then "32 voices added"
 - [ ] A bank grown past 54 patches (two bank dumps into one bank): all patches listed, in order,
@@ -53,7 +56,7 @@ the Serial Monitor open: it prints CPU, audio memory, display stack and Dexed fi
 - [ ] Recall page shows DX7 Voices top left; pushing it lists the .syx files and plays voice 1
 - [ ] Turning Voice plays each voice (names as in Dexed); fast turns don't freeze or click badly
 - [ ] Turning File reads the next file; a single voice file shows 1 voice; a non-DX7 file says so
-- [ ] Effects of the previous patch stay on while browsing
+- [ ] Effects of the previous patch stay on while browsing, and on a .syx import
 - [ ] Cancel: the previous patch comes back
 - [ ] Voice push: back to the main page with the voice, its name shown
 - [ ] Save (TL) and the Save button: naming page with the voice name; the saved patch recalls the same
