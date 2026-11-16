@@ -381,6 +381,7 @@ FLASHMEM boolean loadPatch(uint8_t bank, uint32_t filename)
     currentPatch.Voice[i] = (uint8_t)strtoul(byteStr, nullptr, 16);
   }
   currentPatch.OpEnabled = doc["OpEnabled"] | 0x3F;
+  currentPatch.EngineType = min(2, doc["EngineType"] | 1); // Mark I for patches saved before it was saved
   for (uint8_t i = 0; i < 4; i++)
     currentPatch.EnvMacro[i] = min(100, doc["EnvMacro"][i] | 50);
   currentPatch.PitchBend = doc["PitchBend"] | 2;
@@ -464,6 +465,7 @@ FLASHMEM boolean savePatch(uint8_t bankIndex, uint8_t index)
     snprintf(&hex[i * 2], 3, "%02X", currentPatch.Voice[i]);
   doc["Voice"] = hex;
   doc["OpEnabled"] = currentPatch.OpEnabled;
+  doc["EngineType"] = currentPatch.EngineType;
   JsonArray envMacro = doc.createNestedArray("EnvMacro");
   for (uint8_t i = 0; i < 4; i++)
     envMacro.add(currentPatch.EnvMacro[i]);

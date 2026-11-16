@@ -144,7 +144,7 @@ FLASHMEM uint8_t fmGet(uint8_t id)
     case FMK_AT_TARGET:
         return currentPatch.AftertouchTarget;
     case FMK_ENGINE:
-        return vg->getEngineType();
+        return currentPatch.EngineType;
     case FMK_ENV_MACRO:
         return vg->getEnvMacro(p.index) + 50;
     }
@@ -193,7 +193,11 @@ FLASHMEM void fmSet(uint8_t id, uint8_t value)
         vg->setAftertouchController(currentPatch.AftertouchRange, currentPatch.AftertouchTarget);
         break;
     case FMK_ENGINE:
+        currentPatch.EngineType = value;
         vg->setEngineType(value);
+        // setEngineType() refreshes Dexed's controllers: put the patch's ranges back
+        vg->setModWheelController(currentPatch.ModWheelRange, currentPatch.ModWheelTarget);
+        vg->setAftertouchController(currentPatch.AftertouchRange, currentPatch.AftertouchTarget);
         break;
     case FMK_ENV_MACRO:
         currentPatch.EnvMacro[p.index] = value;

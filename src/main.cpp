@@ -1006,6 +1006,10 @@ FLASHMEM void setCurrentPatchData()
     VoiceGroup *vg = groupvec[activeGroupIndex];
     {
         AudioUpdateLock lock; // Dexed renders from the voice data
+        // Only when it changes: setEngineType() stops the sounding notes and resets the controllers
+        // (set again below)
+        if (vg->getEngineType() != currentPatch.EngineType)
+            vg->setEngineType(currentPatch.EngineType);
         if (currentPatch.VoiceValid)
             vg->setVoiceData(currentPatch.Voice);
         else
